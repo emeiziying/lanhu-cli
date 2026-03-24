@@ -2,6 +2,7 @@ export interface LanhuConfig {
   baseUrl: string;
   cookie?: string;
   tenantId?: string;
+  projectId?: string;
   timeoutMs: number;
   profile: string;
 }

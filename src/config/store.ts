@@ -74,6 +74,7 @@ function normalizeStoredConfig(
     baseUrl: config.baseUrl,
     cookie: config.cookie,
     tenantId: config.tenantId,
+    projectId: config.projectId,
     timeoutMs: config.timeoutMs,
     profile: config.profile
   });

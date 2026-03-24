@@ -11,6 +11,7 @@ export interface AuthSetOptions {
   cookie: string;
   baseUrl?: string;
   tenantId?: string;
+  projectId?: string;
   profile?: string;
 }
 
@@ -24,13 +25,16 @@ export async function updateAuthConfig(
   options: Partial<AuthSetOptions>
 ): Promise<LanhuConfig> {
   const existing = await readStoredConfig();
+  const hasOption = (key: keyof AuthSetOptions): boolean =>
+    Object.prototype.hasOwnProperty.call(options, key);
 
   await writeStoredConfig({
     ...existing,
-    baseUrl: options.baseUrl ?? existing.baseUrl,
-    cookie: options.cookie ?? existing.cookie,
-    tenantId: options.tenantId ?? existing.tenantId,
-    profile: options.profile ?? existing.profile
+    baseUrl: hasOption("baseUrl") ? options.baseUrl : existing.baseUrl,
+    cookie: hasOption("cookie") ? options.cookie : existing.cookie,
+    tenantId: hasOption("tenantId") ? options.tenantId : existing.tenantId,
+    projectId: hasOption("projectId") ? options.projectId : existing.projectId,
+    profile: hasOption("profile") ? options.profile : existing.profile
   });
 
   const { config } = await loadConfigWithMeta();
@@ -62,6 +66,16 @@ export function assertHasTenantId(config: LanhuConfig): void {
     throw new LanhuError({
       code: "TENANT_REQUIRED",
       message: "No tenantId configured. Run `lanhu auth set --tenant-id <tenantId> --cookie <cookie>` first.",
+      exitCode: EXIT_CODES.USAGE
+    });
+  }
+}
+
+export function assertHasProjectId(config: LanhuConfig): void {
+  if (!config.projectId) {
+    throw new LanhuError({
+      code: "PROJECT_REQUIRED",
+      message: "No projectId configured. Run `lanhu project switch` first.",
       exitCode: EXIT_CODES.USAGE
     });
   }

@@ -21,6 +21,7 @@ describe("config loading", () => {
     delete process.env.LANHU_BASE_URL;
     delete process.env.LANHU_COOKIE;
     delete process.env.LANHU_TENANT_ID;
+    delete process.env.LANHU_PROJECT_ID;
     delete process.env.LANHU_TIMEOUT_MS;
     delete process.env.LANHU_PROFILE;
     await clearStoredConfig();
@@ -36,6 +37,7 @@ describe("config loading", () => {
       baseUrl: "https://config.example.com",
       cookie: "config-cookie",
       tenantId: "config-tenant",
+      projectId: "config-project",
       timeoutMs: 2_000,
       profile: "config"
     });
@@ -43,12 +45,14 @@ describe("config loading", () => {
     process.env.LANHU_BASE_URL = "https://env.example.com";
     process.env.LANHU_COOKIE = "env-cookie";
     process.env.LANHU_TENANT_ID = "env-tenant";
+    process.env.LANHU_PROJECT_ID = "env-project";
     process.env.LANHU_TIMEOUT_MS = "3000";
     process.env.LANHU_PROFILE = "env";
 
     const meta = await loadConfigWithMeta({
       cookie: "flag-cookie",
       tenantId: "flag-tenant",
+      projectId: "flag-project",
       timeoutMs: 4_000
     });
 
@@ -56,6 +60,7 @@ describe("config loading", () => {
       baseUrl: "https://env.example.com",
       cookie: "flag-cookie",
       tenantId: "flag-tenant",
+      projectId: "flag-project",
       timeoutMs: 4_000,
       profile: "env"
     });
@@ -64,6 +69,7 @@ describe("config loading", () => {
       baseUrl: "env",
       cookie: "flag",
       tenantId: "flag",
+      projectId: "flag",
       timeoutMs: "flag",
       profile: "env"
     });
@@ -77,8 +83,10 @@ describe("config loading", () => {
     expect(meta.config.profile).toBe("default");
     expect(meta.config.cookie).toBeUndefined();
     expect(meta.config.tenantId).toBeUndefined();
+    expect(meta.config.projectId).toBeUndefined();
     expect(meta.sources.cookie).toBe("unset");
     expect(meta.sources.tenantId).toBe("unset");
+    expect(meta.sources.projectId).toBe("unset");
   });
 
   it("ignores legacy token field in stored config", async () => {
@@ -91,7 +99,8 @@ describe("config loading", () => {
         {
           token: "legacy-token",
           baseUrl: "https://legacy.example.com",
-          tenantId: "legacy-tenant"
+          tenantId: "legacy-tenant",
+          projectId: "legacy-project"
         },
         null,
         2
@@ -104,11 +113,13 @@ describe("config loading", () => {
     expect(meta.config).toEqual({
       baseUrl: "https://legacy.example.com",
       tenantId: "legacy-tenant",
+      projectId: "legacy-project",
       timeoutMs: 15_000,
       profile: "default"
     });
     expect(meta.config.cookie).toBeUndefined();
     expect(meta.sources.cookie).toBe("unset");
     expect(meta.sources.tenantId).toBe("config");
+    expect(meta.sources.projectId).toBe("config");
   });
 });

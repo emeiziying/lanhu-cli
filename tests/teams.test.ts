@@ -1,3 +1,7 @@
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   Agent,
@@ -10,20 +14,27 @@ import { LanhuError } from "../src/errors.js";
 import {
   listTeams,
   normalizeTeamList,
-  resolveTeamSelection
+  resolveTeamSelection,
+  switchTeam
 } from "../src/teams.js";
 
 describe("teams", () => {
   const originalDispatcher = getGlobalDispatcher();
+  const originalEnv = { ...process.env };
   let mockAgent: MockAgent;
+  let tempDir: string;
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "lanhu-cli-teams-"));
+    process.env.XDG_CONFIG_HOME = tempDir;
     mockAgent = new MockAgent();
     mockAgent.disableNetConnect();
     setGlobalDispatcher(mockAgent);
   });
 
   afterEach(async () => {
+    process.env = { ...originalEnv };
+    await rm(tempDir, { recursive: true, force: true });
     await mockAgent.close();
     setGlobalDispatcher(originalDispatcher as Agent);
   });
@@ -148,5 +159,45 @@ describe("teams", () => {
         "t2"
       )
     ).toThrowError(LanhuError);
+  });
+
+  it("clears current project when switching teams", async () => {
+    const pool = mockAgent.get("https://lanhuapp.com");
+
+    pool
+      .intercept({
+        method: "GET",
+        path: "/api/account/user_teams?need_open_related=true",
+        headers: {
+          cookie: "session=secret"
+        }
+      })
+      .reply(200, {
+        code: 0,
+        msg: "success",
+        data: [
+          {
+            tenantId: "tenant-2",
+            tenantName: "Team Two"
+          }
+        ]
+      });
+
+    const updatedConfig = await switchTeam(
+      {
+        baseUrl: "https://lanhuapp.com/workbench/api",
+        cookie: "session=secret",
+        tenantId: "tenant-1",
+        projectId: "project-1",
+        timeoutMs: 1_000,
+        profile: "default"
+      },
+      {
+        tenantId: "tenant-2"
+      }
+    );
+
+    expect(updatedConfig.tenantId).toBe("tenant-2");
+    expect(updatedConfig.projectId).toBeUndefined();
   });
 });

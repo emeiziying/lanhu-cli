@@ -33,6 +33,7 @@ export function registerAuthCommands(program: Command): void {
         profile: config.profile,
         baseUrl: config.baseUrl,
         tenantId: config.tenantId,
+        projectId: config.projectId,
         timeoutMs: config.timeoutMs,
         hasCookie: Boolean(config.cookie),
         cookiePreview: maskSecret(config.cookie)
@@ -49,6 +50,7 @@ export function registerAuthCommands(program: Command): void {
         profile: meta.config.profile,
         baseUrl: meta.config.baseUrl,
         tenantId: meta.config.tenantId,
+        projectId: meta.config.projectId,
         timeoutMs: meta.config.timeoutMs,
         hasCookie: Boolean(meta.config.cookie),
         cookiePreview: maskSecret(meta.config.cookie),

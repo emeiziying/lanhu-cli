@@ -42,6 +42,7 @@ lanhu auth set --cookie '<cookie>' --tenant-id '<tenant-id>' [--base-url <url>]
 lanhu auth show
 lanhu auth clear
 lanhu project list
+lanhu project switch
 lanhu team list
 lanhu team switch
 lanhu request <method> <path> [--query key=value] [--header key=value] [--data ...]

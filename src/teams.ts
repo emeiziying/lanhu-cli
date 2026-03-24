@@ -55,7 +55,8 @@ export async function switchTeam(
       : await (options.prompt ?? promptForTeamSelection)(teams);
 
   return updateAuthConfig({
-    tenantId: selected.tenantId
+    tenantId: selected.tenantId,
+    projectId: undefined
   });
 }
 

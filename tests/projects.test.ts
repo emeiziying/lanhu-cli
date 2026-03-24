@@ -1,3 +1,7 @@
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   Agent,
@@ -7,19 +11,29 @@ import {
 } from "undici";
 
 import { LanhuError } from "../src/errors.js";
-import { listProjects } from "../src/projects.js";
+import {
+  listProjects,
+  resolveProjectSelection,
+  switchProject
+} from "../src/projects.js";
 
 describe("listProjects", () => {
   const originalDispatcher = getGlobalDispatcher();
+  const originalEnv = { ...process.env };
   let mockAgent: MockAgent;
+  let tempDir: string;
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "lanhu-cli-projects-"));
+    process.env.XDG_CONFIG_HOME = tempDir;
     mockAgent = new MockAgent();
     mockAgent.disableNetConnect();
     setGlobalDispatcher(mockAgent);
   });
 
   afterEach(async () => {
+    process.env = { ...originalEnv };
+    await rm(tempDir, { recursive: true, force: true });
     await mockAgent.close();
     setGlobalDispatcher(originalDispatcher as Agent);
   });
@@ -82,5 +96,75 @@ describe("listProjects", () => {
     ).rejects.toMatchObject({
       code: "TENANT_REQUIRED"
     } satisfies Partial<LanhuError>);
+  });
+
+  it("selects a project by sourceId or shortId", () => {
+    const projects = [
+      {
+        id: 1,
+        sourceName: "Demo",
+        sourceType: "project",
+        sourceId: "project-1",
+        sourceShortId: "demo-1",
+        parentId: 0
+      },
+      {
+        id: 2,
+        sourceName: "Demo 2",
+        sourceType: "project",
+        sourceId: "project-2",
+        sourceShortId: "demo-2",
+        parentId: 0
+      }
+    ];
+
+    expect(resolveProjectSelection(projects, "demo-2").sourceId).toBe("project-2");
+    expect(resolveProjectSelection(projects, "1").sourceId).toBe("project-1");
+  });
+
+  it("switches the current project", async () => {
+    const pool = mockAgent.get("https://lanhuapp.com");
+
+    pool
+      .intercept({
+        method: "POST",
+        path: "/workbench/api/workbench/abstractfile/list",
+        headers: {
+          cookie: "session=secret"
+        },
+        body: JSON.stringify({
+          tenantId: "tenant-1",
+          parentId: 0
+        })
+      })
+      .reply(200, {
+        code: 0,
+        msg: "success",
+        data: [
+          {
+            id: 1,
+            sourceName: "Demo",
+            sourceType: "project",
+            sourceId: "project-1",
+            sourceShortId: "demo-1",
+            parentId: 0
+          }
+        ]
+      });
+
+    const updatedConfig = await switchProject(
+      {
+        baseUrl: "https://lanhuapp.com/workbench/api",
+        cookie: "session=secret",
+        tenantId: "tenant-1",
+        timeoutMs: 1_000,
+        profile: "default"
+      },
+      {
+        projectId: "project-1"
+      }
+    );
+
+    expect(updatedConfig.projectId).toBe("project-1");
   });
 });
