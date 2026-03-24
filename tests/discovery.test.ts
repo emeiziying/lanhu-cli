@@ -5,7 +5,7 @@ import {
   sanitizeHeaders,
   shouldTrackUrl,
   summarizeEvents
-} from "../src/discovery.js";
+} from "../scripts/discovery.js";
 
 describe("discovery helpers", () => {
   it("tracks only matching Lanhu API URLs", () => {

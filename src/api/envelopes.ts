@@ -35,29 +35,38 @@ export function unwrapProjectEnvelope<T>(payload: unknown): T {
 
   const record = payload as Record<string, unknown>;
   const code = record.code;
-  const success =
-    code === undefined ||
-    code === 0 ||
-    code === 200 ||
-    code === "0" ||
-    code === "00000" ||
-    code === "200";
 
-  if (!success) {
-    throw new LanhuError({
-      code: "BUSINESS_ERROR",
-      message:
-        getString(record, ["msg", "message", "error"]) ??
-        "Lanhu project API request failed",
-      exitCode: EXIT_CODES.GENERAL,
-      details: payload
-    });
+  if (code !== undefined) {
+    const success =
+      code === 0 ||
+      code === 200 ||
+      code === "0" ||
+      code === "00000" ||
+      code === "200";
+
+    if (!success) {
+      throw new LanhuError({
+        code: "BUSINESS_ERROR",
+        message:
+          getString(record, ["msg", "message", "error"]) ??
+          "Lanhu project API request failed",
+        exitCode: EXIT_CODES.GENERAL,
+        details: payload
+      });
+    }
   }
 
   for (const key of ["result", "data", "list", "items"]) {
     if (key in record) {
       return record[key] as T;
     }
+  }
+
+  if (code === undefined) {
+    throw invalidEnvelopeError(
+      "Lanhu returned a project API response without a status code or recognized data field",
+      payload
+    );
   }
 
   return payload as T;

@@ -3,6 +3,8 @@ import { request } from "undici";
 import { assertHasCookie } from "./auth.js";
 import { normalizeConfigInput } from "./config/compat.js";
 import { MAX_RETRIES } from "./constants.js";
+
+const MAX_RESPONSE_BYTES = 50 * 1024 * 1024; // 50 MB
 import {
   EXIT_CODES,
   LanhuError,
@@ -109,7 +111,28 @@ export class LanhuClient {
     const responseHeaders = normalizeHeaders(response.headers);
     const contentType = responseHeaders["content-type"];
     const requestId = responseHeaders["x-request-id"];
+
+    const contentLength = responseHeaders["content-length"];
+    if (contentLength !== undefined && Number(contentLength) > MAX_RESPONSE_BYTES) {
+      await response.body.dump();
+      throw new LanhuError({
+        code: "RESPONSE_TOO_LARGE",
+        message: `Response body exceeds the ${MAX_RESPONSE_BYTES / (1024 * 1024)} MB size limit`,
+        exitCode: EXIT_CODES.GENERAL,
+        details: { contentLength: Number(contentLength), limitBytes: MAX_RESPONSE_BYTES }
+      });
+    }
+
     const text = await response.body.text();
+
+    if (Buffer.byteLength(text, "utf8") > MAX_RESPONSE_BYTES) {
+      throw new LanhuError({
+        code: "RESPONSE_TOO_LARGE",
+        message: `Response body exceeds the ${MAX_RESPONSE_BYTES / (1024 * 1024)} MB size limit`,
+        exitCode: EXIT_CODES.GENERAL,
+        details: { byteLength: Buffer.byteLength(text, "utf8"), limitBytes: MAX_RESPONSE_BYTES }
+      });
+    }
 
     return {
       status: response.statusCode,

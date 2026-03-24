@@ -1,5 +1,10 @@
+import { createRequire } from "node:module";
+
+const _require = createRequire(import.meta.url);
+const { version } = _require("../package.json") as { version: string };
+
 export const APP_NAME = "lanhu";
-export const CLI_VERSION = "0.1.0";
+export const CLI_VERSION: string = version;
 export const CONFIG_DIR_NAME = "lanhu-cli";
 export const CONFIG_FILE_NAME = "config.json";
 export const DEFAULT_BASE_URL = "https://lanhuapp.com/workbench/api";
