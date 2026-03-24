@@ -12,17 +12,17 @@ import {
 
 import { LanhuError } from "../src/errors.js";
 import {
-  listTeams,
   normalizeTeamList,
-  resolveTeamSelection,
-  switchTeam
-} from "../src/teams.js";
+  resolveTeamSelection
+} from "../src/domain/teams.js";
+import { TeamService } from "../src/services/team-service.js";
 
 describe("teams", () => {
   const originalDispatcher = getGlobalDispatcher();
   const originalEnv = { ...process.env };
   let mockAgent: MockAgent;
   let tempDir: string;
+  let service: TeamService;
 
   beforeEach(async () => {
     tempDir = await mkdtemp(join(tmpdir(), "lanhu-cli-teams-"));
@@ -30,6 +30,7 @@ describe("teams", () => {
     mockAgent = new MockAgent();
     mockAgent.disableNetConnect();
     setGlobalDispatcher(mockAgent);
+    service = new TeamService();
   });
 
   afterEach(async () => {
@@ -66,24 +67,24 @@ describe("teams", () => {
         ]
       });
 
-    const teams = await listTeams({
+    const result = await service.list({
       baseUrl: "https://lanhuapp.com/workbench/api",
       cookie: "session=secret",
       timeoutMs: 1_000,
       profile: "default"
     });
 
-    expect(teams).toEqual([
+    expect(result.items).toEqual([
       expect.objectContaining({
         tenantId: "tenant-1",
         name: "Team One",
-        current: true,
+        isCurrent: true,
         memberCount: undefined
       }),
       expect.objectContaining({
         tenantId: "tenant-2",
         name: "Team Two",
-        current: false
+        isCurrent: false
       })
     ]);
   });
@@ -91,8 +92,8 @@ describe("teams", () => {
   it("selects the current team on empty input", () => {
     const selected = resolveTeamSelection(
       [
-        { tenantId: "t1", name: "A", current: false, raw: {} },
-        { tenantId: "t2", name: "B", current: true, raw: {} }
+        { tenantId: "t1", name: "A", isCurrent: false, raw: {} },
+        { tenantId: "t2", name: "B", isCurrent: true, raw: {} }
       ],
       ""
     );
@@ -117,7 +118,7 @@ describe("teams", () => {
       expect.objectContaining({
         tenantId: "tenant-1",
         name: "Team One",
-        current: true
+        isCurrent: true
       })
     ]);
   });
@@ -155,7 +156,7 @@ describe("teams", () => {
   it("fails when a team cannot be matched", () => {
     expect(() =>
       resolveTeamSelection(
-        [{ tenantId: "t1", name: "A", current: false, raw: {} }],
+        [{ tenantId: "t1", name: "A", isCurrent: false, raw: {} }],
         "t2"
       )
     ).toThrowError(LanhuError);
@@ -183,21 +184,16 @@ describe("teams", () => {
         ]
       });
 
-    const updatedConfig = await switchTeam(
-      {
-        baseUrl: "https://lanhuapp.com/workbench/api",
-        cookie: "session=secret",
-        tenantId: "tenant-1",
-        projectId: "project-1",
-        timeoutMs: 1_000,
-        profile: "default"
-      },
-      {
-        tenantId: "tenant-2"
-      }
-    );
+    const updatedConfig = await service.switch("tenant-2", {
+      baseUrl: "https://lanhuapp.com/workbench/api",
+      cookie: "session=secret",
+      tenantId: "tenant-1",
+      projectId: "project-1",
+      timeoutMs: 1_000,
+      profile: "default"
+    });
 
-    expect(updatedConfig.tenantId).toBe("tenant-2");
-    expect(updatedConfig.projectId).toBeUndefined();
+    expect(updatedConfig.config.context.tenantId).toBe("tenant-2");
+    expect(updatedConfig.config.context.projectId).toBeUndefined();
   });
 });

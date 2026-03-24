@@ -30,11 +30,6 @@ describe("CLI integration", () => {
       env
     });
 
-    await execa(process.execPath, ["--import", "tsx", entryFile, "auth", "set", "--cookie", "session=secret", "--tenant-id", "tenant-1"], {
-      cwd: projectRoot,
-      env
-    });
-
     const result = await execa(
       process.execPath,
       ["--import", "tsx", entryFile, "auth", "show"],
@@ -45,18 +40,22 @@ describe("CLI integration", () => {
     );
 
     const payload = JSON.parse(result.stdout) as {
-      hasCookie: boolean;
-      tenantId?: string;
+      session: {
+        hasCookie: boolean;
+      };
+      context: {
+        tenantId?: string;
+      };
       sources: {
         cookie: string;
         tenantId: string;
       };
     };
 
-    expect(payload.hasCookie).toBe(true);
-    expect(payload.tenantId).toBe("tenant-1");
+    expect(payload.session.hasCookie).toBe(true);
+    expect(payload.context.tenantId).toBeUndefined();
     expect(payload.sources.cookie).toBe("config");
-    expect(payload.sources.tenantId).toBe("config");
+    expect(payload.sources.tenantId).toBe("unset");
   });
 
   it("returns auth exit code when request is attempted without a cookie", async () => {

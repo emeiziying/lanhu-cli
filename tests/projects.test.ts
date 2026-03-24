@@ -12,17 +12,16 @@ import {
 
 import { LanhuError } from "../src/errors.js";
 import {
-  getProjectDetail,
-  listProjects,
-  resolveProjectSelection,
-  switchProject
-} from "../src/projects.js";
+  resolveProjectSelection
+} from "../src/domain/projects.js";
+import { ProjectService } from "../src/services/project-service.js";
 
 describe("listProjects", () => {
   const originalDispatcher = getGlobalDispatcher();
   const originalEnv = { ...process.env };
   let mockAgent: MockAgent;
   let tempDir: string;
+  let service: ProjectService;
 
   beforeEach(async () => {
     tempDir = await mkdtemp(join(tmpdir(), "lanhu-cli-projects-"));
@@ -30,6 +29,7 @@ describe("listProjects", () => {
     mockAgent = new MockAgent();
     mockAgent.disableNetConnect();
     setGlobalDispatcher(mockAgent);
+    service = new ProjectService();
   });
 
   afterEach(async () => {
@@ -69,7 +69,7 @@ describe("listProjects", () => {
         ]
       });
 
-    const items = await listProjects({
+    const result = await service.list({
       baseUrl: "https://lanhuapp.com/workbench/api",
       cookie: "session=secret",
       tenantId: "tenant-1",
@@ -77,18 +77,18 @@ describe("listProjects", () => {
       profile: "default"
     });
 
-    expect(items).toEqual([
+    expect(result.items).toEqual([
       expect.objectContaining({
         id: 1,
-        sourceName: "Demo",
-        sourceType: "project"
+        name: "Demo",
+        type: "project"
       })
     ]);
   });
 
   it("requires tenantId", async () => {
     await expect(
-      listProjects({
+      service.list({
         baseUrl: "https://lanhuapp.com/workbench/api",
         cookie: "session=secret",
         timeoutMs: 1_000,
@@ -103,24 +103,28 @@ describe("listProjects", () => {
     const projects = [
       {
         id: 1,
-        sourceName: "Demo",
-        sourceType: "project",
-        sourceId: "project-1",
-        sourceShortId: "demo-1",
-        parentId: 0
+        name: "Demo",
+        type: "project",
+        projectId: "project-1",
+        shortId: "demo-1",
+        parentId: 0,
+        isCurrent: false,
+        raw: {}
       },
       {
         id: 2,
-        sourceName: "Demo 2",
-        sourceType: "project",
-        sourceId: "project-2",
-        sourceShortId: "demo-2",
-        parentId: 0
+        name: "Demo 2",
+        type: "project",
+        projectId: "project-2",
+        shortId: "demo-2",
+        parentId: 0,
+        isCurrent: false,
+        raw: {}
       }
     ];
 
-    expect(resolveProjectSelection(projects, "demo-2").sourceId).toBe("project-2");
-    expect(resolveProjectSelection(projects, "1").sourceId).toBe("project-1");
+    expect(resolveProjectSelection(projects, "demo-2").projectId).toBe("project-2");
+    expect(resolveProjectSelection(projects, "1").projectId).toBe("project-1");
   });
 
   it("switches the current project", async () => {
@@ -153,20 +157,15 @@ describe("listProjects", () => {
         ]
       });
 
-    const updatedConfig = await switchProject(
-      {
-        baseUrl: "https://lanhuapp.com/workbench/api",
-        cookie: "session=secret",
-        tenantId: "tenant-1",
-        timeoutMs: 1_000,
-        profile: "default"
-      },
-      {
-        projectId: "project-1"
-      }
-    );
+    const updatedConfig = await service.switch("project-1", {
+      baseUrl: "https://lanhuapp.com/workbench/api",
+      cookie: "session=secret",
+      tenantId: "tenant-1",
+      timeoutMs: 1_000,
+      profile: "default"
+    });
 
-    expect(updatedConfig.projectId).toBe("project-1");
+    expect(updatedConfig.config.context.projectId).toBe("project-1");
   });
 
   it("reads project detail payload from project multi_info", async () => {
@@ -189,7 +188,7 @@ describe("listProjects", () => {
         }
       });
 
-    const detail = await getProjectDetail({
+    const result = await service.detail({
       baseUrl: "https://lanhuapp.com/workbench/api",
       cookie: "session=secret",
       tenantId: "tenant-1",
@@ -198,7 +197,7 @@ describe("listProjects", () => {
       profile: "default"
     });
 
-    expect(detail).toEqual({
+    expect(result.detail).toEqual({
       project_id: "project-1",
       name: "Demo Project"
     });

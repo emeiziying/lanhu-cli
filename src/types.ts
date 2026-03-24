@@ -1,10 +1,40 @@
-export interface LanhuConfig {
+export interface LanhuSessionConfig {
   baseUrl: string;
   cookie?: string;
-  tenantId?: string;
-  projectId?: string;
   timeoutMs: number;
   profile: string;
+}
+
+export interface LanhuWorkspaceContext {
+  tenantId?: string;
+  projectId?: string;
+}
+
+export interface LanhuResolvedContext {
+  session: LanhuSessionConfig;
+  context: LanhuWorkspaceContext;
+}
+
+export type LanhuConfig = LanhuResolvedContext;
+
+export interface LegacyLanhuConfig {
+  baseUrl: string;
+  cookie?: string;
+  timeoutMs: number;
+  profile: string;
+  tenantId?: string;
+  projectId?: string;
+}
+
+export type LanhuConfigInput = LanhuResolvedContext | LegacyLanhuConfig;
+
+export interface LanhuConfigOverrides {
+  baseUrl?: string;
+  cookie?: string;
+  timeoutMs?: number;
+  profile?: string;
+  tenantId?: string;
+  projectId?: string;
 }
 
 export interface LanhuRequestOptions {
@@ -25,8 +55,16 @@ export interface LanhuResponse<T = unknown> {
 
 export type ConfigSource = "flag" | "env" | "config" | "default" | "unset";
 
+export type LanhuConfigKey =
+  | "baseUrl"
+  | "cookie"
+  | "timeoutMs"
+  | "profile"
+  | "tenantId"
+  | "projectId";
+
 export interface LanhuConfigMeta {
-  config: LanhuConfig;
+  config: LanhuResolvedContext;
   configPath: string;
-  sources: Record<keyof LanhuConfig, ConfigSource>;
+  sources: Record<LanhuConfigKey, ConfigSource>;
 }

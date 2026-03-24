@@ -4,12 +4,12 @@ import { dirname, join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { loadConfigWithMeta } from "../src/config/load.js";
+import { loadResolvedConfigWithMeta } from "../src/config/loader.js";
 import {
-  clearStoredConfig,
+  clearStoredConfigFile,
   getConfigPath,
-  writeStoredConfig
-} from "../src/config/store.js";
+  writeStoredConfigFile
+} from "../src/config/file-store.js";
 
 describe("config loading", () => {
   const originalEnv = { ...process.env };
@@ -24,7 +24,7 @@ describe("config loading", () => {
     delete process.env.LANHU_PROJECT_ID;
     delete process.env.LANHU_TIMEOUT_MS;
     delete process.env.LANHU_PROFILE;
-    await clearStoredConfig();
+    await clearStoredConfigFile();
   });
 
   afterEach(async () => {
@@ -33,13 +33,17 @@ describe("config loading", () => {
   });
 
   it("applies flag overrides over env and file config", async () => {
-    await writeStoredConfig({
-      baseUrl: "https://config.example.com",
-      cookie: "config-cookie",
-      tenantId: "config-tenant",
-      projectId: "config-project",
-      timeoutMs: 2_000,
-      profile: "config"
+    await writeStoredConfigFile({
+      session: {
+        baseUrl: "https://config.example.com",
+        cookie: "config-cookie",
+        timeoutMs: 2_000,
+        profile: "config"
+      },
+      context: {
+        tenantId: "config-tenant",
+        projectId: "config-project"
+      }
     });
 
     process.env.LANHU_BASE_URL = "https://env.example.com";
@@ -49,7 +53,7 @@ describe("config loading", () => {
     process.env.LANHU_TIMEOUT_MS = "3000";
     process.env.LANHU_PROFILE = "env";
 
-    const meta = await loadConfigWithMeta({
+    const meta = await loadResolvedConfigWithMeta({
       cookie: "flag-cookie",
       tenantId: "flag-tenant",
       projectId: "flag-project",
@@ -57,12 +61,16 @@ describe("config loading", () => {
     });
 
     expect(meta.config).toEqual({
-      baseUrl: "https://env.example.com",
-      cookie: "flag-cookie",
-      tenantId: "flag-tenant",
-      projectId: "flag-project",
-      timeoutMs: 4_000,
-      profile: "env"
+      session: {
+        baseUrl: "https://env.example.com",
+        cookie: "flag-cookie",
+        timeoutMs: 4_000,
+        profile: "env"
+      },
+      context: {
+        tenantId: "flag-tenant",
+        projectId: "flag-project"
+      }
     });
 
     expect(meta.sources).toEqual({
@@ -76,14 +84,14 @@ describe("config loading", () => {
   });
 
   it("falls back to defaults when config is empty", async () => {
-    const meta = await loadConfigWithMeta();
+    const meta = await loadResolvedConfigWithMeta();
 
-    expect(meta.config.baseUrl).toBe("https://lanhuapp.com/workbench/api");
-    expect(meta.config.timeoutMs).toBe(15_000);
-    expect(meta.config.profile).toBe("default");
-    expect(meta.config.cookie).toBeUndefined();
-    expect(meta.config.tenantId).toBeUndefined();
-    expect(meta.config.projectId).toBeUndefined();
+    expect(meta.config.session.baseUrl).toBe("https://lanhuapp.com/workbench/api");
+    expect(meta.config.session.timeoutMs).toBe(15_000);
+    expect(meta.config.session.profile).toBe("default");
+    expect(meta.config.session.cookie).toBeUndefined();
+    expect(meta.config.context.tenantId).toBeUndefined();
+    expect(meta.config.context.projectId).toBeUndefined();
     expect(meta.sources.cookie).toBe("unset");
     expect(meta.sources.tenantId).toBe("unset");
     expect(meta.sources.projectId).toBe("unset");
@@ -108,16 +116,20 @@ describe("config loading", () => {
       "utf8"
     );
 
-    const meta = await loadConfigWithMeta();
+    const meta = await loadResolvedConfigWithMeta();
 
     expect(meta.config).toEqual({
-      baseUrl: "https://legacy.example.com",
-      tenantId: "legacy-tenant",
-      projectId: "legacy-project",
-      timeoutMs: 15_000,
-      profile: "default"
+      session: {
+        baseUrl: "https://legacy.example.com",
+        timeoutMs: 15_000,
+        profile: "default"
+      },
+      context: {
+        tenantId: "legacy-tenant",
+        projectId: "legacy-project"
+      }
     });
-    expect(meta.config.cookie).toBeUndefined();
+    expect(meta.config.session.cookie).toBeUndefined();
     expect(meta.sources.cookie).toBe("unset");
     expect(meta.sources.tenantId).toBe("config");
     expect(meta.sources.projectId).toBe("config");

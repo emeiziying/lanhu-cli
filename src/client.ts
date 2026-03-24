@@ -1,6 +1,7 @@
 import { request } from "undici";
 
 import { assertHasCookie } from "./auth.js";
+import { normalizeConfigInput } from "./config/compat.js";
 import { MAX_RETRIES } from "./constants.js";
 import {
   EXIT_CODES,
@@ -9,7 +10,8 @@ import {
   isLanhuError
 } from "./errors.js";
 import {
-  type LanhuConfig,
+  type LanhuConfigInput,
+  type LanhuResolvedContext,
   type LanhuRequestOptions,
   type LanhuResponse
 } from "./types.js";
@@ -20,7 +22,11 @@ interface InternalRequestOptions extends LanhuRequestOptions {
 }
 
 export class LanhuClient {
-  constructor(private readonly config: LanhuConfig) {}
+  private readonly config: LanhuResolvedContext;
+
+  constructor(config: LanhuConfigInput) {
+    this.config = normalizeConfigInput(config);
+  }
 
   async request<T = unknown>(
     options: InternalRequestOptions
@@ -90,8 +96,8 @@ export class LanhuClient {
   ): Promise<LanhuResponse<T>> {
     const headers = buildRequestHeaders(this.config, options.headers);
     const body = serializeBody(options.body, headers);
-    const url = buildUrl(this.config.baseUrl, options.path, options.query);
-    const timeoutMs = options.timeoutMs ?? this.config.timeoutMs;
+    const url = buildUrl(this.config.session.baseUrl, options.path, options.query);
+    const timeoutMs = options.timeoutMs ?? this.config.session.timeoutMs;
 
     const response = await request(url, {
       method: options.method.toUpperCase(),
@@ -155,15 +161,15 @@ function buildUrl(
 }
 
 function buildRequestHeaders(
-  config: LanhuConfig,
+  config: LanhuResolvedContext,
   headers: Record<string, string> = {}
 ): Record<string, string> {
   const normalizedHeaders = Object.fromEntries(
     Object.entries(headers).map(([key, value]) => [key.toLowerCase(), value])
   );
 
-  if (config.cookie && normalizedHeaders.cookie === undefined) {
-    normalizedHeaders.cookie = config.cookie;
+  if (config.session.cookie && normalizedHeaders.cookie === undefined) {
+    normalizedHeaders.cookie = config.session.cookie;
   }
 
   return normalizedHeaders;

@@ -1,58 +1,64 @@
 import { EXIT_CODES, LanhuError } from "./errors.js";
-import { loadConfigWithMeta } from "./config/load.js";
+import { normalizeConfigInput } from "./config/compat.js";
+import { loadResolvedConfigWithMeta } from "./config/loader.js";
+import { replaceStoredContext } from "./config/context-store.js";
+import { clearStoredConfigFile } from "./config/file-store.js";
+import { readStoredSession, writeStoredSession } from "./config/session-store.js";
 import {
-  clearStoredConfig,
-  readStoredConfig,
-  writeStoredConfig
-} from "./config/store.js";
-import { type LanhuConfig } from "./types.js";
+  type LanhuConfigInput,
+  type LanhuResolvedContext,
+  type LanhuWorkspaceContext
+} from "./types.js";
 
 export interface AuthSetOptions {
   cookie: string;
   baseUrl?: string;
-  tenantId?: string;
-  projectId?: string;
+  timeoutMs?: number;
   profile?: string;
 }
 
 export async function setAuthConfig(
   options: AuthSetOptions
-): Promise<LanhuConfig> {
-  return updateAuthConfig(options);
-}
+): Promise<LanhuResolvedContext> {
+  const existing = await readStoredSession();
 
-export async function updateAuthConfig(
-  options: Partial<AuthSetOptions>
-): Promise<LanhuConfig> {
-  const existing = await readStoredConfig();
-  const hasOption = (key: keyof AuthSetOptions): boolean =>
-    Object.prototype.hasOwnProperty.call(options, key);
-
-  await writeStoredConfig({
+  await writeStoredSession({
     ...existing,
-    baseUrl: hasOption("baseUrl") ? options.baseUrl : existing.baseUrl,
-    cookie: hasOption("cookie") ? options.cookie : existing.cookie,
-    tenantId: hasOption("tenantId") ? options.tenantId : existing.tenantId,
-    projectId: hasOption("projectId") ? options.projectId : existing.projectId,
-    profile: hasOption("profile") ? options.profile : existing.profile
+    baseUrl: options.baseUrl ?? existing.baseUrl,
+    cookie: options.cookie,
+    timeoutMs: options.timeoutMs ?? existing.timeoutMs,
+    profile: options.profile ?? existing.profile
   });
 
-  const { config } = await loadConfigWithMeta();
+  const { config } = await loadResolvedConfigWithMeta();
   return config;
 }
 
+export async function updateWorkspaceContext(
+  context: LanhuWorkspaceContext
+): Promise<LanhuResolvedContext> {
+  const { config } = await loadResolvedConfigWithMeta();
+
+  await replaceStoredContext({
+    ...config.context,
+    ...context
+  });
+
+  return loadResolvedConfigWithMeta().then((result) => result.config);
+}
+
 export async function showAuthConfig(): Promise<
-  Awaited<ReturnType<typeof loadConfigWithMeta>>
+  Awaited<ReturnType<typeof loadResolvedConfigWithMeta>>
 > {
-  return loadConfigWithMeta();
+  return loadResolvedConfigWithMeta();
 }
 
 export async function clearAuthConfig(): Promise<void> {
-  await clearStoredConfig();
+  await clearStoredConfigFile();
 }
 
-export function assertHasCookie(config: LanhuConfig): void {
-  if (!config.cookie) {
+export function assertHasCookie(config: LanhuConfigInput): void {
+  if (!normalizeConfigInput(config).session.cookie) {
     throw new LanhuError({
       code: "AUTH_REQUIRED",
       message: "No cookie configured. Run `lanhu auth set --cookie <cookie>` first.",
@@ -61,18 +67,18 @@ export function assertHasCookie(config: LanhuConfig): void {
   }
 }
 
-export function assertHasTenantId(config: LanhuConfig): void {
-  if (!config.tenantId) {
+export function assertHasTenantId(config: LanhuConfigInput): void {
+  if (!normalizeConfigInput(config).context.tenantId) {
     throw new LanhuError({
       code: "TENANT_REQUIRED",
-      message: "No tenantId configured. Run `lanhu auth set --tenant-id <tenantId> --cookie <cookie>` first.",
+      message: "No tenantId configured. Run `lanhu team switch` first.",
       exitCode: EXIT_CODES.USAGE
     });
   }
 }
 
-export function assertHasProjectId(config: LanhuConfig): void {
-  if (!config.projectId) {
+export function assertHasProjectId(config: LanhuConfigInput): void {
+  if (!normalizeConfigInput(config).context.projectId) {
     throw new LanhuError({
       code: "PROJECT_REQUIRED",
       message: "No projectId configured. Run `lanhu project switch` first.",

@@ -1,3 +1,7 @@
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   Agent,
@@ -8,22 +12,36 @@ import {
 
 import { LanhuError } from "../src/errors.js";
 import {
-  getProjectImageDetail,
-  listProjectImages,
-  normalizeProjectImageList
-} from "../src/images.js";
+  extractImageJsonUrl,
+  normalizeImageList
+} from "../src/domain/images.js";
+import { ImageService } from "../src/services/image-service.js";
 
 describe("images", () => {
   const originalDispatcher = getGlobalDispatcher();
+  const originalEnv = { ...process.env };
   let mockAgent: MockAgent;
+  let service: ImageService;
+  let tempDir: string;
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "lanhu-cli-images-"));
+    process.env.XDG_CONFIG_HOME = tempDir;
+    delete process.env.LANHU_BASE_URL;
+    delete process.env.LANHU_COOKIE;
+    delete process.env.LANHU_TENANT_ID;
+    delete process.env.LANHU_PROJECT_ID;
+    delete process.env.LANHU_TIMEOUT_MS;
+    delete process.env.LANHU_PROFILE;
     mockAgent = new MockAgent();
     mockAgent.disableNetConnect();
     setGlobalDispatcher(mockAgent);
+    service = new ImageService();
   });
 
   afterEach(async () => {
+    process.env = { ...originalEnv };
+    await rm(tempDir, { recursive: true, force: true });
     await mockAgent.close();
     setGlobalDispatcher(originalDispatcher as Agent);
   });
@@ -50,7 +68,7 @@ describe("images", () => {
         ]
       });
 
-    const items = await listProjectImages({
+    const result = await service.list({
       baseUrl: "https://lanhuapp.com/workbench/api",
       cookie: "session=secret",
       tenantId: "tenant-1",
@@ -59,9 +77,9 @@ describe("images", () => {
       profile: "default"
     });
 
-    expect(items).toEqual([
+    expect(result.items).toEqual([
       expect.objectContaining({
-        id: "image-1",
+        imageId: "image-1",
         name: "Home"
       })
     ]);
@@ -87,26 +105,25 @@ describe("images", () => {
         }
       });
 
-      const detail = await getProjectImageDetail({
-        baseUrl: "https://lanhuapp.com/workbench/api",
-        cookie: "session=secret",
-        tenantId: "tenant-1",
-        projectId: "project-1",
-        timeoutMs: 1_000,
-        profile: "default"
-      }, {
-        imageId: "image-1"
-      });
+    const result = await service.detail("image-1", {
+      baseUrl: "https://lanhuapp.com/workbench/api",
+      cookie: "session=secret",
+      tenantId: "tenant-1",
+      projectId: "project-1",
+      timeoutMs: 1_000,
+      profile: "default"
+    });
 
-    expect(detail).toEqual({
+    expect(result.detail.raw).toEqual({
       id: "image-1",
       json_url: "https://static.example.com/image-1.json"
     });
+    expect(result.detail.jsonUrl).toBe("https://static.example.com/image-1.json");
   });
 
   it("requires projectId", async () => {
     await expect(
-      listProjectImages({
+      service.list({
         baseUrl: "https://lanhuapp.com/workbench/api",
         cookie: "session=secret",
         tenantId: "tenant-1",
@@ -119,7 +136,7 @@ describe("images", () => {
   });
 
   it("extracts nested image arrays from object payloads", () => {
-    const items = normalizeProjectImageList({
+    const items = normalizeImageList({
       images: {
         docs: [
           {
@@ -132,9 +149,21 @@ describe("images", () => {
 
     expect(items).toEqual([
       expect.objectContaining({
-        id: "image-1",
-        title: "Home"
+        imageId: "image-1",
+        name: "Home"
       })
     ]);
+  });
+
+  it("extracts image json url from nested payloads", () => {
+    expect(
+      extractImageJsonUrl({
+        image: {
+          meta: {
+            json_url: "https://static.example.com/image-1.json"
+          }
+        }
+      })
+    ).toBe("https://static.example.com/image-1.json");
   });
 });

@@ -1,8 +1,8 @@
 import { Command } from "commander";
 
-import { LanhuClient } from "../client.js";
-import { loadConfig } from "../config/load.js";
-import { writeJson } from "../utils/output.js";
+import { LanhuClient } from "../../client.js";
+import { loadResolvedConfig } from "../../config/loader.js";
+import { writeJson } from "../../utils/output.js";
 
 interface PingCommandOptions {
   cookie?: string;
@@ -20,7 +20,7 @@ export function registerPingCommand(program: Command): void {
     .option("--timeout <ms>", "Override timeout in milliseconds")
     .option("--profile <profile>", "Override profile")
     .action(async (options: PingCommandOptions) => {
-      const config = await loadConfig({
+      const config = await loadResolvedConfig({
         cookie: options.cookie,
         baseUrl: options.baseUrl,
         timeoutMs: options.timeout ? Number(options.timeout) : undefined,
@@ -32,8 +32,8 @@ export function registerPingCommand(program: Command): void {
       writeJson({
         ok: response.status < 500,
         status: response.status,
-        baseUrl: config.baseUrl,
-        hasCookie: Boolean(config.cookie),
+        baseUrl: config.session.baseUrl,
+        hasCookie: Boolean(config.session.cookie),
         requestId: response.requestId,
         data: response.data
       });

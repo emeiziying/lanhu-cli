@@ -2,12 +2,12 @@ import { Command } from "commander";
 
 import { APP_NAME, CLI_VERSION } from "./constants.js";
 import { LanhuError, EXIT_CODES } from "./errors.js";
-import { registerAuthCommands } from "./commands/auth.js";
-import { registerImageCommands } from "./commands/image.js";
-import { registerPingCommand } from "./commands/ping.js";
-import { registerProjectCommands } from "./commands/project.js";
-import { registerRequestCommand } from "./commands/request.js";
-import { registerTeamCommands } from "./commands/team.js";
+import { registerAuthCommands } from "./cli/commands/auth.js";
+import { registerImageCommands } from "./cli/commands/image.js";
+import { registerPingCommand } from "./cli/commands/ping.js";
+import { registerProjectCommands } from "./cli/commands/project.js";
+import { registerRequestCommand } from "./cli/commands/request.js";
+import { registerTeamCommands } from "./cli/commands/team.js";
 
 export function buildCli(): Command {
   const program = new Command();

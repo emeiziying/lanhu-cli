@@ -8,7 +8,8 @@ import {
 } from "../constants.js";
 import { EXIT_CODES, LanhuError } from "../errors.js";
 import {
-  type StoredConfig,
+  type StoredLanhuConfig,
+  type StoredLanhuConfigFile,
   storedConfigFileSchema,
   storedConfigSchema
 } from "./schema.js";
@@ -40,18 +41,18 @@ async function ensureConfigDir(): Promise<void> {
   });
 }
 
-export async function readStoredConfig(): Promise<StoredConfig> {
+export async function readStoredConfigFile(): Promise<StoredLanhuConfig> {
   const configPath = getConfigPath();
 
   try {
     const raw = await readFile(configPath, "utf8");
-    const parsed = JSON.parse(raw) as unknown;
-    return normalizeStoredConfig(storedConfigFileSchema.parse(parsed));
+    const parsed = storedConfigFileSchema.parse(JSON.parse(raw) as unknown);
+    return normalizeStoredConfig(parsed);
   } catch (error) {
     const nodeError = error as NodeJS.ErrnoException;
 
     if (nodeError?.code === "ENOENT") {
-      return {};
+      return storedConfigSchema.parse({});
     }
 
     throw new LanhuError({
@@ -67,21 +68,10 @@ export async function readStoredConfig(): Promise<StoredConfig> {
   }
 }
 
-function normalizeStoredConfig(
-  config: Record<string, unknown>
-): StoredConfig {
-  return storedConfigSchema.parse({
-    baseUrl: config.baseUrl,
-    cookie: config.cookie,
-    tenantId: config.tenantId,
-    projectId: config.projectId,
-    timeoutMs: config.timeoutMs,
-    profile: config.profile
-  });
-}
-
-export async function writeStoredConfig(config: StoredConfig): Promise<void> {
-  const normalized = storedConfigSchema.parse(stripUndefined(config));
+export async function writeStoredConfigFile(
+  config: StoredLanhuConfig
+): Promise<void> {
+  const normalized = storedConfigSchema.parse(stripUndefinedDeep(config));
   const configPath = getConfigPath();
 
   await ensureConfigDir();
@@ -92,14 +82,43 @@ export async function writeStoredConfig(config: StoredConfig): Promise<void> {
   await chmod(configPath, 0o600);
 }
 
-export async function clearStoredConfig(): Promise<void> {
+export async function clearStoredConfigFile(): Promise<void> {
   await rm(getConfigPath(), {
     force: true
   });
 }
 
-function stripUndefined<T extends Record<string, unknown>>(value: T): T {
+export function normalizeStoredConfig(
+  config: StoredLanhuConfigFile
+): StoredLanhuConfig {
+  return storedConfigSchema.parse({
+    session: {
+      ...config.session,
+      baseUrl: config.session?.baseUrl ?? config.baseUrl,
+      cookie: config.session?.cookie ?? config.cookie,
+      timeoutMs: config.session?.timeoutMs ?? config.timeoutMs,
+      profile: config.session?.profile ?? config.profile
+    },
+    context: {
+      ...config.context,
+      tenantId: config.context?.tenantId ?? config.tenantId,
+      projectId: config.context?.projectId ?? config.projectId
+    }
+  });
+}
+
+function stripUndefinedDeep<T>(value: T): T {
+  if (Array.isArray(value)) {
+    return value.map((entry) => stripUndefinedDeep(entry)) as T;
+  }
+
+  if (!value || typeof value !== "object") {
+    return value;
+  }
+
   return Object.fromEntries(
-    Object.entries(value).filter(([, entryValue]) => entryValue !== undefined)
+    Object.entries(value)
+      .filter(([, entryValue]) => entryValue !== undefined)
+      .map(([key, entryValue]) => [key, stripUndefinedDeep(entryValue)])
   ) as T;
 }
