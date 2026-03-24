@@ -3,15 +3,11 @@ import { stdout } from "node:process";
 
 import { TeamService } from "../../services/team-service.js";
 import { writeJson } from "../../utils/output.js";
+import { type CommonCommandOptions, toOverrides } from "../../utils/parse-options.js";
 import { formatTeamList } from "../formatters/team.js";
 import { promptTeamSelection } from "../interactive.js";
 
-interface TeamCommandOptions {
-  cookie?: string;
-  baseUrl?: string;
-  timeout?: string;
-  profile?: string;
-  tenantId?: string;
+interface TeamCommandOptions extends CommonCommandOptions {
   json?: boolean;
 }
 
@@ -59,11 +55,3 @@ export function registerTeamCommands(program: Command): void {
     });
 }
 
-function toOverrides(options: TeamCommandOptions) {
-  return {
-    cookie: options.cookie,
-    baseUrl: options.baseUrl,
-    timeoutMs: options.timeout ? Number(options.timeout) : undefined,
-    profile: options.profile
-  };
-}

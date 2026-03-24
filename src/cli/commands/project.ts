@@ -3,17 +3,12 @@ import { stdout } from "node:process";
 
 import { ProjectService } from "../../services/project-service.js";
 import { writeJson } from "../../utils/output.js";
+import { type CommonCommandOptions, toOverrides } from "../../utils/parse-options.js";
 import { formatProjectList } from "../formatters/project.js";
 import { promptProjectSelection } from "../interactive.js";
 
-interface ProjectCommandOptions {
-  tenantId?: string;
+interface ProjectCommandOptions extends CommonCommandOptions {
   parentId?: string;
-  projectId?: string;
-  baseUrl?: string;
-  cookie?: string;
-  timeout?: string;
-  profile?: string;
   imgLimit?: string;
   detach?: string;
   json?: boolean;
@@ -105,13 +100,3 @@ export function registerProjectCommands(program: Command): void {
     });
 }
 
-function toOverrides(options: ProjectCommandOptions) {
-  return {
-    tenantId: options.tenantId,
-    projectId: options.projectId,
-    cookie: options.cookie,
-    baseUrl: options.baseUrl,
-    timeoutMs: options.timeout ? Number(options.timeout) : undefined,
-    profile: options.profile
-  };
-}
