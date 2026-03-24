@@ -8,7 +8,7 @@ import {
 import { type LanhuConfig } from "./types.js";
 
 export interface AuthSetOptions {
-  token: string;
+  cookie: string;
   baseUrl?: string;
   profile?: string;
 }
@@ -21,7 +21,7 @@ export async function setAuthConfig(
   await writeStoredConfig({
     ...existing,
     baseUrl: options.baseUrl ?? existing.baseUrl,
-    token: options.token,
+    cookie: options.cookie,
     profile: options.profile ?? existing.profile
   });
 
@@ -39,24 +39,24 @@ export async function clearAuthConfig(): Promise<void> {
   await clearStoredConfig();
 }
 
-export function assertHasToken(config: LanhuConfig): void {
-  if (!config.token) {
+export function assertHasCookie(config: LanhuConfig): void {
+  if (!config.cookie) {
     throw new LanhuError({
       code: "AUTH_REQUIRED",
-      message: "No token configured. Run `lanhu auth set --token <token>` first.",
+      message: "No cookie configured. Run `lanhu auth set --cookie <cookie>` first.",
       exitCode: EXIT_CODES.AUTH
     });
   }
 }
 
-export function maskToken(token?: string): string | undefined {
-  if (!token) {
+export function maskSecret(secret?: string): string | undefined {
+  if (!secret) {
     return undefined;
   }
 
-  if (token.length <= 8) {
-    return `${token.slice(0, 2)}***`;
+  if (secret.length <= 8) {
+    return `${secret.slice(0, 2)}***`;
   }
 
-  return `${token.slice(0, 4)}***${token.slice(-4)}`;
+  return `${secret.slice(0, 4)}***${secret.slice(-4)}`;
 }

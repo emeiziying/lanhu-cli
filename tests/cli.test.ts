@@ -25,7 +25,7 @@ describe("CLI integration", () => {
       XDG_CONFIG_HOME: tempDir
     };
 
-    await execa(process.execPath, ["--import", "tsx", entryFile, "auth", "set", "--token", "secret"], {
+    await execa(process.execPath, ["--import", "tsx", entryFile, "auth", "set", "--cookie", "session=secret"], {
       cwd: projectRoot,
       env
     });
@@ -40,17 +40,17 @@ describe("CLI integration", () => {
     );
 
     const payload = JSON.parse(result.stdout) as {
-      hasToken: boolean;
+      hasCookie: boolean;
       sources: {
-        token: string;
+        cookie: string;
       };
     };
 
-    expect(payload.hasToken).toBe(true);
-    expect(payload.sources.token).toBe("config");
+    expect(payload.hasCookie).toBe(true);
+    expect(payload.sources.cookie).toBe("config");
   });
 
-  it("returns auth exit code when request is attempted without a token", async () => {
+  it("returns auth exit code when request is attempted without a cookie", async () => {
     const env = {
       ...process.env,
       XDG_CONFIG_HOME: tempDir

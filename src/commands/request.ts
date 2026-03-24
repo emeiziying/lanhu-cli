@@ -14,7 +14,7 @@ interface RequestCommandOptions {
   query: string[];
   header: string[];
   data?: string;
-  token?: string;
+  cookie?: string;
   baseUrl?: string;
   timeout?: string;
   profile?: string;
@@ -29,13 +29,13 @@ export function registerRequestCommand(program: Command): void {
     .option("--query <key=value>", "Append query parameter", collectRepeatedOption, [])
     .option("--header <key=value>", "Append header", collectRepeatedOption, [])
     .option("--data <value>", "Request body as JSON or raw text")
-    .option("--token <token>", "Override token for this request")
+    .option("--cookie <cookie>", "Override cookie for this request")
     .option("--base-url <url>", "Override base URL for this request")
     .option("--timeout <ms>", "Override timeout in milliseconds")
     .option("--profile <profile>", "Override profile")
     .action(async (method: string, path: string, options: RequestCommandOptions) => {
       const config = await loadConfig({
-        token: options.token,
+        cookie: options.cookie,
         baseUrl: options.baseUrl,
         timeoutMs: options.timeout ? Number(options.timeout) : undefined,
         profile: options.profile

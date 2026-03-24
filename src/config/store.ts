@@ -7,7 +7,11 @@ import {
   CONFIG_FILE_NAME
 } from "../constants.js";
 import { EXIT_CODES, LanhuError } from "../errors.js";
-import { type StoredConfig, storedConfigSchema } from "./schema.js";
+import {
+  type StoredConfig,
+  storedConfigFileSchema,
+  storedConfigSchema
+} from "./schema.js";
 
 function getDefaultConfigRoot(): string {
   if (process.env.XDG_CONFIG_HOME) {
@@ -42,7 +46,7 @@ export async function readStoredConfig(): Promise<StoredConfig> {
   try {
     const raw = await readFile(configPath, "utf8");
     const parsed = JSON.parse(raw) as unknown;
-    return storedConfigSchema.parse(parsed);
+    return normalizeStoredConfig(storedConfigFileSchema.parse(parsed));
   } catch (error) {
     const nodeError = error as NodeJS.ErrnoException;
 
@@ -61,6 +65,17 @@ export async function readStoredConfig(): Promise<StoredConfig> {
       cause: error
     });
   }
+}
+
+function normalizeStoredConfig(
+  config: Record<string, unknown>
+): StoredConfig {
+  return storedConfigSchema.parse({
+    baseUrl: config.baseUrl,
+    cookie: config.cookie,
+    timeoutMs: config.timeoutMs,
+    profile: config.profile
+  });
 }
 
 export async function writeStoredConfig(config: StoredConfig): Promise<void> {

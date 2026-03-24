@@ -1,6 +1,6 @@
 import { request } from "undici";
 
-import { assertHasToken } from "./auth.js";
+import { assertHasCookie } from "./auth.js";
 import { MAX_RETRIES } from "./constants.js";
 import {
   EXIT_CODES,
@@ -26,7 +26,7 @@ export class LanhuClient {
     options: InternalRequestOptions
   ): Promise<LanhuResponse<T>> {
     if (options.requireAuth !== false) {
-      assertHasToken(this.config);
+      assertHasCookie(this.config);
     }
 
     let lastError: unknown;
@@ -159,12 +159,8 @@ function buildRequestHeaders(
     Object.entries(headers).map(([key, value]) => [key.toLowerCase(), value])
   );
 
-  if (config.token && normalizedHeaders.authorization === undefined) {
-    normalizedHeaders.authorization = `Bearer ${config.token}`;
-  }
-
-  if (normalizedHeaders.accept === undefined) {
-    normalizedHeaders.accept = "application/json";
+  if (config.cookie && normalizedHeaders.cookie === undefined) {
+    normalizedHeaders.cookie = config.cookie;
   }
 
   return normalizedHeaders;

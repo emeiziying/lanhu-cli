@@ -9,16 +9,26 @@ import {
 export const storedConfigSchema = z
   .object({
     baseUrl: z.string().url().optional(),
-    token: z.string().min(1).optional(),
+    cookie: z.string().min(1).optional(),
     timeoutMs: z.number().int().positive().optional(),
     profile: z.string().min(1).optional()
   })
   .strict();
 
+export const storedConfigFileSchema = z
+  .object({
+    baseUrl: z.string().url().optional(),
+    cookie: z.string().min(1).optional(),
+    timeoutMs: z.number().int().positive().optional(),
+    profile: z.string().min(1).optional(),
+    token: z.string().min(1).optional()
+  })
+  .passthrough();
+
 export const resolvedConfigSchema = z
   .object({
     baseUrl: z.string().url().default(DEFAULT_BASE_URL),
-    token: z.string().min(1).optional(),
+    cookie: z.string().min(1).optional(),
     timeoutMs: z.number().int().positive().default(DEFAULT_TIMEOUT_MS),
     profile: z.string().min(1).default(DEFAULT_PROFILE)
   })
@@ -26,3 +36,4 @@ export const resolvedConfigSchema = z
 
 export type StoredConfig = z.infer<typeof storedConfigSchema>;
 export type ResolvedConfig = z.infer<typeof resolvedConfigSchema>;
+export type StoredConfigFile = z.infer<typeof storedConfigFileSchema>;

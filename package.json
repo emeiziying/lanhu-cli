@@ -1,7 +1,7 @@
 {
   "name": "lanhu-cli",
   "version": "0.1.0",
-  "description": "CLI proxy for Lanhu OpenAPI",
+  "description": "CLI for Lanhu web APIs",
   "type": "module",
   "bin": {
     "lanhu": "dist/index.js"

@@ -2,14 +2,14 @@ import { Command } from "commander";
 
 import {
   clearAuthConfig,
-  maskToken,
+  maskSecret,
   setAuthConfig,
   showAuthConfig
 } from "../auth.js";
 import { writeJson } from "../utils/output.js";
 
 interface AuthSetCommandOptions {
-  token: string;
+  cookie: string;
   baseUrl?: string;
   profile?: string;
 }
@@ -19,8 +19,8 @@ export function registerAuthCommands(program: Command): void {
 
   auth
     .command("set")
-    .description("Persist token and optional base URL")
-    .requiredOption("--token <token>", "Lanhu API token")
+    .description("Persist cookie and optional base URL")
+    .requiredOption("--cookie <cookie>", "Lanhu session cookie")
     .option("--base-url <url>", "Override base URL")
     .option("--profile <profile>", "Select profile name")
     .action(async (options: AuthSetCommandOptions) => {
@@ -31,8 +31,8 @@ export function registerAuthCommands(program: Command): void {
         profile: config.profile,
         baseUrl: config.baseUrl,
         timeoutMs: config.timeoutMs,
-        hasToken: Boolean(config.token),
-        tokenPreview: maskToken(config.token)
+        hasCookie: Boolean(config.cookie),
+        cookiePreview: maskSecret(config.cookie)
       });
     });
 
@@ -46,8 +46,8 @@ export function registerAuthCommands(program: Command): void {
         profile: meta.config.profile,
         baseUrl: meta.config.baseUrl,
         timeoutMs: meta.config.timeoutMs,
-        hasToken: Boolean(meta.config.token),
-        tokenPreview: maskToken(meta.config.token),
+        hasCookie: Boolean(meta.config.cookie),
+        cookiePreview: maskSecret(meta.config.cookie),
         configPath: meta.configPath,
         sources: meta.sources
       });

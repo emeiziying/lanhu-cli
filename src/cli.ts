@@ -11,7 +11,7 @@ export function buildCli(): Command {
 
   program
     .name(APP_NAME)
-    .description("CLI proxy for Lanhu OpenAPI")
+    .description("CLI for Lanhu web APIs")
     .version(CLI_VERSION)
     .option("--verbose", "Include extra error details")
     .showHelpAfterError()

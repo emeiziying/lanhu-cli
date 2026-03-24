@@ -1,6 +1,6 @@
 # lanhu-cli
 
-CLI proxy for Lanhu OpenAPI.
+CLI for Lanhu web APIs.
 
 ## Development
 
@@ -13,7 +13,7 @@ pnpm test
 ## Commands
 
 ```bash
-lanhu auth set --token <token> [--base-url <url>]
+lanhu auth set --cookie '<cookie>' [--base-url <url>]
 lanhu auth show
 lanhu auth clear
 lanhu request <method> <path> [--query key=value] [--header key=value] [--data ...]

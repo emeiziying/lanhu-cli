@@ -32,7 +32,7 @@ describe("LanhuClient", () => {
         method: "POST",
         path: "/v1/projects?foo=bar&foo=baz",
         headers: {
-          authorization: "Bearer secret",
+          cookie: "session=secret",
           "x-test": "1"
         },
         body: JSON.stringify({ name: "demo" })
@@ -52,7 +52,7 @@ describe("LanhuClient", () => {
 
     const client = new LanhuClient({
       baseUrl: "https://api.example.com",
-      token: "secret",
+      cookie: "session=secret",
       timeoutMs: 1_000,
       profile: "default"
     });
@@ -88,7 +88,7 @@ describe("LanhuClient", () => {
 
     const client = new LanhuClient({
       baseUrl: "https://api.example.com",
-      token: "secret",
+      cookie: "session=secret",
       timeoutMs: 1_000,
       profile: "default"
     });
@@ -111,7 +111,7 @@ describe("LanhuClient", () => {
 
     const client = new LanhuClient({
       baseUrl: "https://api.example.com",
-      token: "secret",
+      cookie: "session=secret",
       timeoutMs: 1_000,
       profile: "default"
     });

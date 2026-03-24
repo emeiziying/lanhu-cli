@@ -10,7 +10,7 @@ import { resolvedConfigSchema, type StoredConfig } from "./schema.js";
 
 type ConfigOverrides = Partial<{
   baseUrl: string;
-  token: string;
+  cookie: string;
   timeoutMs: number;
   profile: string;
 }>;
@@ -36,7 +36,7 @@ function parseTimeout(value: string | undefined): number | undefined {
 function getEnvConfig(): StoredConfig {
   return {
     baseUrl: process.env.LANHU_BASE_URL,
-    token: process.env.LANHU_TOKEN,
+    cookie: process.env.LANHU_COOKIE,
     timeoutMs: parseTimeout(process.env.LANHU_TIMEOUT_MS),
     profile: process.env.LANHU_PROFILE
   };
@@ -60,7 +60,7 @@ function getSource(
     return "config";
   }
 
-  if (field === "token") {
+  if (field === "cookie") {
     return "unset";
   }
 
@@ -94,7 +94,7 @@ export async function loadConfigWithMeta(
     configPath: getConfigPath(),
     sources: {
       baseUrl: getSource("baseUrl", overrides, envConfig, fileConfig),
-      token: getSource("token", overrides, envConfig, fileConfig),
+      cookie: getSource("cookie", overrides, envConfig, fileConfig),
       timeoutMs: getSource("timeoutMs", overrides, envConfig, fileConfig),
       profile: getSource("profile", overrides, envConfig, fileConfig)
     }
