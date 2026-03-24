@@ -3,6 +3,7 @@ import { Command } from "commander";
 import { APP_NAME, CLI_VERSION } from "./constants.js";
 import { LanhuError, EXIT_CODES } from "./errors.js";
 import { registerAuthCommands } from "./commands/auth.js";
+import { registerImageCommands } from "./commands/image.js";
 import { registerPingCommand } from "./commands/ping.js";
 import { registerProjectCommands } from "./commands/project.js";
 import { registerRequestCommand } from "./commands/request.js";
@@ -44,6 +45,7 @@ export function buildCli(): Command {
     });
 
   registerAuthCommands(program);
+  registerImageCommands(program);
   registerProjectCommands(program);
   registerTeamCommands(program);
   registerRequestCommand(program);

@@ -12,6 +12,7 @@ import {
 
 import { LanhuError } from "../src/errors.js";
 import {
+  getProjectDetail,
   listProjects,
   resolveProjectSelection,
   switchProject
@@ -166,5 +167,40 @@ describe("listProjects", () => {
     );
 
     expect(updatedConfig.projectId).toBe("project-1");
+  });
+
+  it("reads project detail payload from project multi_info", async () => {
+    const pool = mockAgent.get("https://lanhuapp.com");
+
+    pool
+      .intercept({
+        method: "GET",
+        path: "/api/project/multi_info?project_id=project-1&team_id=tenant-1&img_limit=1&detach=1",
+        headers: {
+          cookie: "session=secret"
+        }
+      })
+      .reply(200, {
+        code: "00000",
+        msg: "success",
+        result: {
+          project_id: "project-1",
+          name: "Demo Project"
+        }
+      });
+
+    const detail = await getProjectDetail({
+      baseUrl: "https://lanhuapp.com/workbench/api",
+      cookie: "session=secret",
+      tenantId: "tenant-1",
+      projectId: "project-1",
+      timeoutMs: 1_000,
+      profile: "default"
+    });
+
+    expect(detail).toEqual({
+      project_id: "project-1",
+      name: "Demo Project"
+    });
   });
 });

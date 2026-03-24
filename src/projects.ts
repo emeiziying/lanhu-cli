@@ -2,10 +2,11 @@ import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 
 import { updateAuthConfig } from "./auth.js";
-import { assertHasTenantId } from "./auth.js";
+import { assertHasProjectId, assertHasTenantId } from "./auth.js";
 import { EXIT_CODES, LanhuError } from "./errors.js";
 import { LanhuClient } from "./client.js";
 import { type LanhuConfig } from "./types.js";
+import { unwrapProjectApiResponse } from "./project-api.js";
 import { unwrapWorkbenchResponse } from "./workbench.js";
 
 export interface ProjectListItem {
@@ -83,6 +84,39 @@ export async function switchProject(
     tenantId: options.tenantId ?? config.tenantId,
     projectId: selected.sourceId
   });
+}
+
+export async function getProjectDetail(
+  config: LanhuConfig,
+  options: {
+    tenantId?: string;
+    projectId?: string;
+    imgLimit?: number;
+    detach?: number;
+  } = {}
+): Promise<unknown> {
+  const effectiveConfig: LanhuConfig = {
+    ...config,
+    tenantId: options.tenantId ?? config.tenantId,
+    projectId: options.projectId ?? config.projectId
+  };
+
+  assertHasTenantId(effectiveConfig);
+  assertHasProjectId(effectiveConfig);
+
+  const client = new LanhuClient(effectiveConfig);
+  const response = await client.request({
+    method: "GET",
+    path: "https://lanhuapp.com/api/project/multi_info",
+    query: {
+      project_id: effectiveConfig.projectId!,
+      team_id: effectiveConfig.tenantId!,
+      img_limit: String(options.imgLimit ?? 1),
+      detach: String(options.detach ?? 1)
+    }
+  });
+
+  return unwrapProjectApiResponse(response.data);
 }
 
 export function resolveProjectSelection(

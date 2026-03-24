@@ -2,7 +2,7 @@ import { Command } from "commander";
 import { stdout } from "node:process";
 
 import { loadConfig } from "../config/load.js";
-import { listProjects, switchProject } from "../projects.js";
+import { getProjectDetail, listProjects, switchProject } from "../projects.js";
 import { writeJson } from "../utils/output.js";
 
 interface ProjectListCommandOptions {
@@ -13,6 +13,8 @@ interface ProjectListCommandOptions {
   cookie?: string;
   timeout?: string;
   profile?: string;
+  imgLimit?: string;
+  detach?: string;
   json?: boolean;
 }
 
@@ -102,6 +104,37 @@ export function registerProjectCommands(program: Command): void {
         tenantId: updatedConfig.tenantId,
         projectId: updatedConfig.projectId
       });
+    });
+
+  project
+    .command("detail")
+    .description("Fetch project detail payload")
+    .option("--tenant-id <tenantId>", "Override tenant ID")
+    .option("--project-id <projectId>", "Override project ID")
+    .option("--img-limit <imgLimit>", "Image limit", "1")
+    .option("--detach <detach>", "Detach flag", "1")
+    .option("--cookie <cookie>", "Override cookie")
+    .option("--base-url <url>", "Override base URL")
+    .option("--timeout <ms>", "Override timeout in milliseconds")
+    .option("--profile <profile>", "Override profile")
+    .action(async (options: ProjectListCommandOptions) => {
+      const config = await loadConfig({
+        tenantId: options.tenantId,
+        projectId: options.projectId,
+        cookie: options.cookie,
+        baseUrl: options.baseUrl,
+        timeoutMs: options.timeout ? Number(options.timeout) : undefined,
+        profile: options.profile
+      });
+
+      const detail = await getProjectDetail(config, {
+        tenantId: options.tenantId,
+        projectId: options.projectId,
+        imgLimit: Number(options.imgLimit ?? "1"),
+        detach: Number(options.detach ?? "1")
+      });
+
+      writeJson(detail);
     });
 }
 

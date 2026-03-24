@@ -41,7 +41,10 @@ pnpm exec playwright install chromium
 lanhu auth set --cookie '<cookie>' --tenant-id '<tenant-id>' [--base-url <url>]
 lanhu auth show
 lanhu auth clear
+lanhu image list
+lanhu image detail <image-id>
 lanhu project list
+lanhu project detail
 lanhu project switch
 lanhu team list
 lanhu team switch
