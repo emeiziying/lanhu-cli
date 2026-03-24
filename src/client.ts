@@ -134,9 +134,12 @@ function buildUrl(
   path: string,
   query?: Record<string, string | string[]>
 ): URL {
-  const normalizedBaseUrl = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
-  const normalizedPath = path.startsWith("/") ? path.slice(1) : path;
-  const url = new URL(normalizedPath, normalizedBaseUrl);
+  const url = path.startsWith("http://") || path.startsWith("https://")
+    ? new URL(path)
+    : new URL(
+        path.startsWith("/") ? path.slice(1) : path,
+        baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`
+      );
 
   for (const [key, value] of Object.entries(query ?? {})) {
     if (Array.isArray(value)) {

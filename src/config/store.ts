@@ -73,6 +73,7 @@ function normalizeStoredConfig(
   return storedConfigSchema.parse({
     baseUrl: config.baseUrl,
     cookie: config.cookie,
+    tenantId: config.tenantId,
     timeoutMs: config.timeoutMs,
     profile: config.profile
   });

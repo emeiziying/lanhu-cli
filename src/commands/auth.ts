@@ -11,6 +11,7 @@ import { writeJson } from "../utils/output.js";
 interface AuthSetCommandOptions {
   cookie: string;
   baseUrl?: string;
+  tenantId?: string;
   profile?: string;
 }
 
@@ -22,6 +23,7 @@ export function registerAuthCommands(program: Command): void {
     .description("Persist cookie and optional base URL")
     .requiredOption("--cookie <cookie>", "Lanhu session cookie")
     .option("--base-url <url>", "Override base URL")
+    .option("--tenant-id <tenantId>", "Default tenant ID")
     .option("--profile <profile>", "Select profile name")
     .action(async (options: AuthSetCommandOptions) => {
       const config = await setAuthConfig(options);
@@ -30,6 +32,7 @@ export function registerAuthCommands(program: Command): void {
         saved: true,
         profile: config.profile,
         baseUrl: config.baseUrl,
+        tenantId: config.tenantId,
         timeoutMs: config.timeoutMs,
         hasCookie: Boolean(config.cookie),
         cookiePreview: maskSecret(config.cookie)
@@ -45,6 +48,7 @@ export function registerAuthCommands(program: Command): void {
       writeJson({
         profile: meta.config.profile,
         baseUrl: meta.config.baseUrl,
+        tenantId: meta.config.tenantId,
         timeoutMs: meta.config.timeoutMs,
         hasCookie: Boolean(meta.config.cookie),
         cookiePreview: maskSecret(meta.config.cookie),

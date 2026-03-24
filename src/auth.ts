@@ -10,18 +10,26 @@ import { type LanhuConfig } from "./types.js";
 export interface AuthSetOptions {
   cookie: string;
   baseUrl?: string;
+  tenantId?: string;
   profile?: string;
 }
 
 export async function setAuthConfig(
   options: AuthSetOptions
 ): Promise<LanhuConfig> {
+  return updateAuthConfig(options);
+}
+
+export async function updateAuthConfig(
+  options: Partial<AuthSetOptions>
+): Promise<LanhuConfig> {
   const existing = await readStoredConfig();
 
   await writeStoredConfig({
     ...existing,
     baseUrl: options.baseUrl ?? existing.baseUrl,
-    cookie: options.cookie,
+    cookie: options.cookie ?? existing.cookie,
+    tenantId: options.tenantId ?? existing.tenantId,
     profile: options.profile ?? existing.profile
   });
 
@@ -45,6 +53,16 @@ export function assertHasCookie(config: LanhuConfig): void {
       code: "AUTH_REQUIRED",
       message: "No cookie configured. Run `lanhu auth set --cookie <cookie>` first.",
       exitCode: EXIT_CODES.AUTH
+    });
+  }
+}
+
+export function assertHasTenantId(config: LanhuConfig): void {
+  if (!config.tenantId) {
+    throw new LanhuError({
+      code: "TENANT_REQUIRED",
+      message: "No tenantId configured. Run `lanhu auth set --tenant-id <tenantId> --cookie <cookie>` first.",
+      exitCode: EXIT_CODES.USAGE
     });
   }
 }

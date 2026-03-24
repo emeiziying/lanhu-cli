@@ -16,6 +16,7 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsx src/index.ts",
+    "discover:apis": "tsx scripts/discover-apis.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest"
@@ -28,6 +29,7 @@
   "devDependencies": {
     "@types/node": "^22.13.4",
     "execa": "^9.5.2",
+    "playwright": "^1.58.2",
     "tsup": "^8.4.0",
     "tsx": "^4.19.3",
     "typescript": "^5.7.3",

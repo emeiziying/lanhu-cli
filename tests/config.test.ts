@@ -20,6 +20,7 @@ describe("config loading", () => {
     process.env.XDG_CONFIG_HOME = tempDir;
     delete process.env.LANHU_BASE_URL;
     delete process.env.LANHU_COOKIE;
+    delete process.env.LANHU_TENANT_ID;
     delete process.env.LANHU_TIMEOUT_MS;
     delete process.env.LANHU_PROFILE;
     await clearStoredConfig();
@@ -34,23 +35,27 @@ describe("config loading", () => {
     await writeStoredConfig({
       baseUrl: "https://config.example.com",
       cookie: "config-cookie",
+      tenantId: "config-tenant",
       timeoutMs: 2_000,
       profile: "config"
     });
 
     process.env.LANHU_BASE_URL = "https://env.example.com";
     process.env.LANHU_COOKIE = "env-cookie";
+    process.env.LANHU_TENANT_ID = "env-tenant";
     process.env.LANHU_TIMEOUT_MS = "3000";
     process.env.LANHU_PROFILE = "env";
 
     const meta = await loadConfigWithMeta({
       cookie: "flag-cookie",
+      tenantId: "flag-tenant",
       timeoutMs: 4_000
     });
 
     expect(meta.config).toEqual({
       baseUrl: "https://env.example.com",
       cookie: "flag-cookie",
+      tenantId: "flag-tenant",
       timeoutMs: 4_000,
       profile: "env"
     });
@@ -58,6 +63,7 @@ describe("config loading", () => {
     expect(meta.sources).toEqual({
       baseUrl: "env",
       cookie: "flag",
+      tenantId: "flag",
       timeoutMs: "flag",
       profile: "env"
     });
@@ -70,7 +76,9 @@ describe("config loading", () => {
     expect(meta.config.timeoutMs).toBe(15_000);
     expect(meta.config.profile).toBe("default");
     expect(meta.config.cookie).toBeUndefined();
+    expect(meta.config.tenantId).toBeUndefined();
     expect(meta.sources.cookie).toBe("unset");
+    expect(meta.sources.tenantId).toBe("unset");
   });
 
   it("ignores legacy token field in stored config", async () => {
@@ -82,7 +90,8 @@ describe("config loading", () => {
       `${JSON.stringify(
         {
           token: "legacy-token",
-          baseUrl: "https://legacy.example.com"
+          baseUrl: "https://legacy.example.com",
+          tenantId: "legacy-tenant"
         },
         null,
         2
@@ -94,10 +103,12 @@ describe("config loading", () => {
 
     expect(meta.config).toEqual({
       baseUrl: "https://legacy.example.com",
+      tenantId: "legacy-tenant",
       timeoutMs: 15_000,
       profile: "default"
     });
     expect(meta.config.cookie).toBeUndefined();
     expect(meta.sources.cookie).toBe("unset");
+    expect(meta.sources.tenantId).toBe("config");
   });
 });

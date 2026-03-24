@@ -4,7 +4,9 @@ import { APP_NAME, CLI_VERSION } from "./constants.js";
 import { LanhuError, EXIT_CODES } from "./errors.js";
 import { registerAuthCommands } from "./commands/auth.js";
 import { registerPingCommand } from "./commands/ping.js";
+import { registerProjectCommands } from "./commands/project.js";
 import { registerRequestCommand } from "./commands/request.js";
+import { registerTeamCommands } from "./commands/team.js";
 
 export function buildCli(): Command {
   const program = new Command();
@@ -16,7 +18,11 @@ export function buildCli(): Command {
     .option("--verbose", "Include extra error details")
     .showHelpAfterError()
     .exitOverride((error) => {
-      if (error.code === "commander.helpDisplayed" || error.code === "commander.version") {
+      if (
+        error.code === "commander.helpDisplayed" ||
+        error.code === "commander.help" ||
+        error.code === "commander.version"
+      ) {
         throw new LanhuError({
           code: "COMMANDER_EXIT",
           message: error.message,
@@ -38,6 +44,8 @@ export function buildCli(): Command {
     });
 
   registerAuthCommands(program);
+  registerProjectCommands(program);
+  registerTeamCommands(program);
   registerRequestCommand(program);
   registerPingCommand(program);
 

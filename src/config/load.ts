@@ -11,6 +11,7 @@ import { resolvedConfigSchema, type StoredConfig } from "./schema.js";
 type ConfigOverrides = Partial<{
   baseUrl: string;
   cookie: string;
+  tenantId: string;
   timeoutMs: number;
   profile: string;
 }>;
@@ -37,6 +38,7 @@ function getEnvConfig(): StoredConfig {
   return {
     baseUrl: process.env.LANHU_BASE_URL,
     cookie: process.env.LANHU_COOKIE,
+    tenantId: process.env.LANHU_TENANT_ID,
     timeoutMs: parseTimeout(process.env.LANHU_TIMEOUT_MS),
     profile: process.env.LANHU_PROFILE
   };
@@ -60,7 +62,7 @@ function getSource(
     return "config";
   }
 
-  if (field === "cookie") {
+  if (field === "cookie" || field === "tenantId") {
     return "unset";
   }
 
@@ -95,6 +97,7 @@ export async function loadConfigWithMeta(
     sources: {
       baseUrl: getSource("baseUrl", overrides, envConfig, fileConfig),
       cookie: getSource("cookie", overrides, envConfig, fileConfig),
+      tenantId: getSource("tenantId", overrides, envConfig, fileConfig),
       timeoutMs: getSource("timeoutMs", overrides, envConfig, fileConfig),
       profile: getSource("profile", overrides, envConfig, fileConfig)
     }
