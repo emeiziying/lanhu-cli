@@ -43,8 +43,8 @@ export function normalizeImageDetail(payload: unknown): ImageDetail {
   };
 }
 
-export function extractImageJsonUrl(payload: unknown): string | undefined {
-  if (!payload || typeof payload !== "object") {
+export function extractImageJsonUrl(payload: unknown, depth = 0): string | undefined {
+  if (depth > 10 || !payload || typeof payload !== "object") {
     return undefined;
   }
 
@@ -57,7 +57,7 @@ export function extractImageJsonUrl(payload: unknown): string | undefined {
   }
 
   for (const value of Object.values(record)) {
-    const nested = extractImageJsonUrl(value);
+    const nested = extractImageJsonUrl(value, depth + 1);
     if (nested) {
       return nested;
     }

@@ -11,7 +11,7 @@ import {
   summarizeEvents,
   type DiscoveryEvent,
   type DiscoveryOptions
-} from "../src/discovery.js";
+} from "./discovery.js";
 
 interface ScriptOptions extends DiscoveryOptions {
   url: string;
