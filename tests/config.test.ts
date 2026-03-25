@@ -4,10 +4,12 @@ import { dirname, join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { updateWorkspaceContext } from "../src/auth.js";
 import { loadResolvedConfigWithMeta } from "../src/config/loader.js";
 import {
   clearStoredConfigFile,
   getConfigPath,
+  readStoredConfigFile,
   writeStoredConfigFile
 } from "../src/config/file-store.js";
 
@@ -133,5 +135,29 @@ describe("config loading", () => {
     expect(meta.sources.cookie).toBe("unset");
     expect(meta.sources.tenantId).toBe("config");
     expect(meta.sources.projectId).toBe("config");
+  });
+
+  it("does not persist tenant/project env overrides when updating context", async () => {
+    await writeStoredConfigFile({
+      session: {},
+      context: {
+        tenantId: "stored-tenant",
+        projectId: "stored-project"
+      }
+    });
+
+    process.env.LANHU_TENANT_ID = "env-tenant";
+    process.env.LANHU_PROJECT_ID = "env-project";
+
+    await updateWorkspaceContext({
+      projectId: "updated-project"
+    });
+
+    const stored = await readStoredConfigFile();
+
+    expect(stored.context).toEqual({
+      tenantId: "stored-tenant",
+      projectId: "updated-project"
+    });
   });
 });

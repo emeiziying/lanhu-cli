@@ -23,6 +23,8 @@ interface InternalRequestOptions extends LanhuRequestOptions {
   allowHttpError?: boolean;
 }
 
+type ResponseBody = Awaited<ReturnType<typeof request>>["body"];
+
 export class LanhuClient {
   private readonly config: LanhuResolvedContext;
 
@@ -115,24 +117,13 @@ export class LanhuClient {
     const contentLength = responseHeaders["content-length"];
     if (contentLength !== undefined && Number(contentLength) > MAX_RESPONSE_BYTES) {
       await response.body.dump();
-      throw new LanhuError({
-        code: "RESPONSE_TOO_LARGE",
-        message: `Response body exceeds the ${MAX_RESPONSE_BYTES / (1024 * 1024)} MB size limit`,
-        exitCode: EXIT_CODES.GENERAL,
-        details: { contentLength: Number(contentLength), limitBytes: MAX_RESPONSE_BYTES }
+      throw createResponseTooLargeError({
+        contentLength: Number(contentLength),
+        limitBytes: MAX_RESPONSE_BYTES
       });
     }
 
-    const text = await response.body.text();
-
-    if (Buffer.byteLength(text, "utf8") > MAX_RESPONSE_BYTES) {
-      throw new LanhuError({
-        code: "RESPONSE_TOO_LARGE",
-        message: `Response body exceeds the ${MAX_RESPONSE_BYTES / (1024 * 1024)} MB size limit`,
-        exitCode: EXIT_CODES.GENERAL,
-        details: { byteLength: Buffer.byteLength(text, "utf8"), limitBytes: MAX_RESPONSE_BYTES }
-      });
-    }
+    const text = await readResponseText(response.body);
 
     return {
       status: response.statusCode,
@@ -235,6 +226,28 @@ function normalizeHeaders(
   return normalized;
 }
 
+async function readResponseText(body: ResponseBody): Promise<string> {
+  const chunks: Buffer[] = [];
+  let byteLength = 0;
+
+  for await (const chunk of body) {
+    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    byteLength += buffer.byteLength;
+
+    if (byteLength > MAX_RESPONSE_BYTES) {
+      body.destroy();
+      throw createResponseTooLargeError({
+        byteLength,
+        limitBytes: MAX_RESPONSE_BYTES
+      });
+    }
+
+    chunks.push(buffer);
+  }
+
+  return Buffer.concat(chunks, byteLength).toString("utf8");
+}
+
 function parseResponseBody(
   body: string,
   contentType?: string
@@ -296,6 +309,19 @@ function backoffMs(attempt: number): number {
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => {
     setTimeout(resolve, ms);
+  });
+}
+
+function createResponseTooLargeError(details: {
+  contentLength?: number;
+  byteLength?: number;
+  limitBytes: number;
+}): LanhuError {
+  return new LanhuError({
+    code: "RESPONSE_TOO_LARGE",
+    message: `Response body exceeds the ${MAX_RESPONSE_BYTES / (1024 * 1024)} MB size limit`,
+    exitCode: EXIT_CODES.GENERAL,
+    details
   });
 }
 

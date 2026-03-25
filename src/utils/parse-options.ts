@@ -17,10 +17,10 @@ export function parseTimeoutMs(raw: string | undefined): number | undefined {
 
   const value = Number(raw);
 
-  if (!Number.isFinite(value) || value <= 0) {
+  if (!Number.isInteger(value) || value <= 0) {
     throw new LanhuError({
       code: "INVALID_TIMEOUT",
-      message: `Invalid timeout value "${raw}": must be a positive number in milliseconds`,
+      message: `Invalid timeout value "${raw}": must be a positive integer in milliseconds`,
       exitCode: EXIT_CODES.USAGE,
     });
   }

@@ -196,4 +196,52 @@ describe("teams", () => {
     expect(updatedConfig.config.context.tenantId).toBe("tenant-2");
     expect(updatedConfig.config.context.projectId).toBeUndefined();
   });
+
+  it("reuses the caller-provided team snapshot when switching by index", async () => {
+    const pool = mockAgent.get("https://lanhuapp.com");
+
+    pool
+      .intercept({
+        method: "GET",
+        path: "/api/account/user_teams?need_open_related=true",
+        headers: {
+          cookie: "session=secret"
+        }
+      })
+      .reply(200, {
+        code: 0,
+        msg: "success",
+        data: [
+          {
+            tenantId: "tenant-1",
+            tenantName: "Team One"
+          },
+          {
+            tenantId: "tenant-2",
+            tenantName: "Team Two"
+          }
+        ]
+      });
+
+    const listResult = await service.list({
+      baseUrl: "https://lanhuapp.com/workbench/api",
+      cookie: "session=secret",
+      timeoutMs: 1_000,
+      profile: "default"
+    });
+
+    const updatedConfig = await service.switch(
+      "2",
+      {
+        baseUrl: "https://lanhuapp.com/workbench/api",
+        cookie: "session=secret",
+        timeoutMs: 1_000,
+        profile: "default"
+      },
+      listResult.items
+    );
+
+    expect(updatedConfig.selected.tenantId).toBe("tenant-2");
+    expect(updatedConfig.config.context.tenantId).toBe("tenant-2");
+  });
 });

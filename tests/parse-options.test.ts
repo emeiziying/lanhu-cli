@@ -17,8 +17,9 @@ describe("parseTimeoutMs", () => {
     expect(parseTimeoutMs("5000")).toBe(5000);
   });
 
-  it("parses a floating point timeout", () => {
-    expect(parseTimeoutMs("1500.5")).toBe(1500.5);
+  it("throws for floating point timeout", () => {
+    expect(() => parseTimeoutMs("1500.5")).toThrow(LanhuError);
+    expect(() => parseTimeoutMs("1500.5")).toThrow(/positive integer/);
   });
 
   it("throws for NaN input", () => {

@@ -6,6 +6,7 @@ import {
 } from "../auth.js";
 import { loadResolvedConfig } from "../config/loader.js";
 import {
+  type ProjectSummary,
   normalizeProjectList,
   resolveProjectSelection
 } from "../domain/projects.js";
@@ -40,9 +41,14 @@ export class ProjectService {
     };
   }
 
-  async switch(selection: string, options: ProjectListOptions = {}) {
-    const { config, items } = await this.list(options);
-    const selected = resolveProjectSelection(items, selection);
+  async switch(
+    selection: string,
+    options: ProjectListOptions = {},
+    items?: ProjectSummary[]
+  ) {
+    const config = await loadResolvedConfig(options);
+    const availableItems = items ?? (await this.list(options)).items;
+    const selected = resolveProjectSelection(availableItems, selection);
     const updatedConfig = await updateWorkspaceContext({
       tenantId: config.context.tenantId,
       projectId: selected.projectId
@@ -50,7 +56,7 @@ export class ProjectService {
 
     return {
       config: updatedConfig,
-      items,
+      items: availableItems,
       selected
     };
   }

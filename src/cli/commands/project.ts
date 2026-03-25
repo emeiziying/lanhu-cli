@@ -70,13 +70,17 @@ export function registerProjectCommands(program: Command): void {
         parentId: parseNonNegativeInt(options.parentId, "parent-id", 0)
       });
 
+      if (!options.projectId) {
+        stdout.write(formatProjectList(listResult.items));
+      }
+
       const selection =
         options.projectId ?? await promptProjectSelection(listResult.items);
       const { selected } = await service.switch(selection, {
         ...toOverrides(options),
         tenantId: options.tenantId,
         parentId: parseNonNegativeInt(options.parentId, "parent-id", 0)
-      });
+      }, listResult.items);
 
       stdout.write(`Switched to ${selected.name}\n`);
     });
@@ -104,4 +108,3 @@ export function registerProjectCommands(program: Command): void {
       writeJson(detail);
     });
 }
-

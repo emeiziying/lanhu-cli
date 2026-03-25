@@ -1,7 +1,7 @@
 import { EXIT_CODES, LanhuError } from "./errors.js";
 import { normalizeConfigInput } from "./config/compat.js";
 import { loadResolvedConfigWithMeta } from "./config/loader.js";
-import { replaceStoredContext } from "./config/context-store.js";
+import { readStoredContext, replaceStoredContext } from "./config/context-store.js";
 import { clearStoredConfigFile } from "./config/file-store.js";
 import { readStoredSession, writeStoredSession } from "./config/session-store.js";
 import {
@@ -37,10 +37,10 @@ export async function setAuthConfig(
 export async function updateWorkspaceContext(
   context: LanhuWorkspaceContext
 ): Promise<LanhuResolvedContext> {
-  const { config } = await loadResolvedConfigWithMeta();
+  const existing = await readStoredContext();
 
   await replaceStoredContext({
-    ...config.context,
+    ...existing,
     ...context
   });
 

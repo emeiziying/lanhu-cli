@@ -1,3 +1,5 @@
+import { createRequire } from "node:module";
+
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   Agent,
@@ -8,6 +10,15 @@ import {
 
 import { LanhuClient } from "../src/client.js";
 import { LanhuError } from "../src/errors.js";
+
+const require = createRequire(import.meta.url);
+const { Readable: BodyReadable } = require("undici/lib/api/readable") as {
+  Readable: {
+    prototype: {
+      text: () => Promise<string>;
+    };
+  };
+};
 
 describe("LanhuClient", () => {
   const originalDispatcher = getGlobalDispatcher();
@@ -250,5 +261,44 @@ describe("LanhuClient", () => {
       message: "bad request details",
       httpStatus: 400
     } satisfies Partial<LanhuError>);
+  });
+
+  it("rejects oversized responses without calling body.text()", async () => {
+    const pool = mockAgent.get("https://api.example.com");
+    const originalText = BodyReadable.prototype.text;
+
+    BodyReadable.prototype.text = () => {
+      throw new Error("body.text() should not be used for oversized responses");
+    };
+
+    pool
+      .intercept({ method: "GET", path: "/huge" })
+      .reply(200, "x".repeat(51 * 1024 * 1024), {
+        headers: { "content-type": "text/plain" }
+      });
+
+    const client = new LanhuClient({
+      baseUrl: "https://api.example.com",
+      cookie: "session=secret",
+      timeoutMs: 10_000,
+      profile: "default"
+    });
+
+    try {
+      await expect(
+        client.request({
+          method: "GET",
+          path: "/huge"
+        })
+      ).rejects.toMatchObject({
+        code: "RESPONSE_TOO_LARGE",
+        exitCode: 1,
+        details: expect.objectContaining({
+          limitBytes: 50 * 1024 * 1024
+        })
+      } satisfies Partial<LanhuError>);
+    } finally {
+      BodyReadable.prototype.text = originalText;
+    }
   });
 });

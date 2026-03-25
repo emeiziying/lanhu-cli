@@ -202,4 +202,64 @@ describe("listProjects", () => {
       name: "Demo Project"
     });
   });
+
+  it("reuses the caller-provided project snapshot when switching by index", async () => {
+    const pool = mockAgent.get("https://lanhuapp.com");
+
+    pool
+      .intercept({
+        method: "POST",
+        path: "/workbench/api/workbench/abstractfile/list",
+        headers: {
+          cookie: "session=secret"
+        },
+        body: JSON.stringify({
+          tenantId: "tenant-1",
+          parentId: 0
+        })
+      })
+      .reply(200, {
+        code: 0,
+        msg: "success",
+        data: [
+          {
+            id: 1,
+            sourceName: "Demo",
+            sourceType: "project",
+            sourceId: "project-1",
+            parentId: 0
+          },
+          {
+            id: 2,
+            sourceName: "Demo 2",
+            sourceType: "project",
+            sourceId: "project-2",
+            parentId: 0
+          }
+        ]
+      });
+
+    const listResult = await service.list({
+      baseUrl: "https://lanhuapp.com/workbench/api",
+      cookie: "session=secret",
+      tenantId: "tenant-1",
+      timeoutMs: 1_000,
+      profile: "default"
+    });
+
+    const updatedConfig = await service.switch(
+      "2",
+      {
+        baseUrl: "https://lanhuapp.com/workbench/api",
+        cookie: "session=secret",
+        tenantId: "tenant-1",
+        timeoutMs: 1_000,
+        profile: "default"
+      },
+      listResult.items
+    );
+
+    expect(updatedConfig.selected.projectId).toBe("project-2");
+    expect(updatedConfig.config.context.projectId).toBe("project-2");
+  });
 });

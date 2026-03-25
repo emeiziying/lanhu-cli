@@ -48,10 +48,17 @@ export function registerTeamCommands(program: Command): void {
     .option("--profile <profile>", "Override profile")
     .action(async (options: TeamCommandOptions) => {
       const { items } = await service.list(toOverrides(options));
+      if (!options.tenantId) {
+        stdout.write(formatTeamList(items));
+      }
+
       const selection = options.tenantId ?? await promptTeamSelection(items);
-      const { selected } = await service.switch(selection, toOverrides(options));
+      const { selected } = await service.switch(
+        selection,
+        toOverrides(options),
+        items
+      );
 
       stdout.write(`Switched to ${selected.name}\n`);
     });
 }
-

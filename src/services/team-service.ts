@@ -1,7 +1,11 @@
 import { assertHasCookie, updateWorkspaceContext } from "../auth.js";
 import { AccountClient } from "../api/account-client.js";
 import { loadResolvedConfig } from "../config/loader.js";
-import { normalizeTeamList, resolveTeamSelection } from "../domain/teams.js";
+import {
+  type TeamSummary,
+  normalizeTeamList,
+  resolveTeamSelection
+} from "../domain/teams.js";
 import { type LanhuConfigOverrides } from "../types.js";
 
 export class TeamService {
@@ -19,9 +23,13 @@ export class TeamService {
     };
   }
 
-  async switch(selection: string, overrides: LanhuConfigOverrides = {}) {
-    const { items } = await this.list(overrides);
-    const selected = resolveTeamSelection(items, selection);
+  async switch(
+    selection: string,
+    overrides: LanhuConfigOverrides = {},
+    items?: TeamSummary[]
+  ) {
+    const availableItems = items ?? (await this.list(overrides)).items;
+    const selected = resolveTeamSelection(availableItems, selection);
     const config = await updateWorkspaceContext({
       tenantId: selected.tenantId,
       projectId: undefined
@@ -29,7 +37,7 @@ export class TeamService {
 
     return {
       config,
-      items,
+      items: availableItems,
       selected
     };
   }
