@@ -3,7 +3,6 @@ import {
   DEFAULT_PROFILE,
   DEFAULT_TIMEOUT_MS
 } from "../constants.js";
-import { EXIT_CODES, LanhuError } from "../errors.js";
 import {
   type ConfigSource,
   type LanhuConfigKey,
@@ -11,32 +10,15 @@ import {
   type LanhuConfigOverrides,
   type LanhuResolvedContext
 } from "../types.js";
+import { parseTimeoutMs } from "../utils/parse-options.js";
 import { getConfigPath, readStoredConfigFile } from "./file-store.js";
 import { resolvedConfigSchema, type StoredLanhuConfig } from "./schema.js";
-
-function parseTimeout(value: string | undefined): number | undefined {
-  if (value === undefined) {
-    return undefined;
-  }
-
-  const timeout = Number(value);
-
-  if (!Number.isInteger(timeout) || timeout <= 0) {
-    throw new LanhuError({
-      code: "INVALID_ENV",
-      message: "LANHU_TIMEOUT_MS must be a positive integer",
-      exitCode: EXIT_CODES.USAGE
-    });
-  }
-
-  return timeout;
-}
 
 function getEnvOverrides(): LanhuConfigOverrides {
   return {
     baseUrl: process.env.LANHU_BASE_URL,
     cookie: process.env.LANHU_COOKIE,
-    timeoutMs: parseTimeout(process.env.LANHU_TIMEOUT_MS),
+    timeoutMs: parseTimeoutMs(process.env.LANHU_TIMEOUT_MS),
     profile: process.env.LANHU_PROFILE,
     tenantId: process.env.LANHU_TENANT_ID,
     projectId: process.env.LANHU_PROJECT_ID

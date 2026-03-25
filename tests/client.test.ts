@@ -127,4 +127,128 @@ describe("LanhuClient", () => {
       httpStatus: 401
     } satisfies Partial<LanhuError>);
   });
+
+  it("throws AUTH_REQUIRED when no cookie is configured", async () => {
+    const client = new LanhuClient({
+      baseUrl: "https://api.example.com",
+      timeoutMs: 1_000,
+      profile: "default"
+    });
+
+    await expect(
+      client.request({ method: "GET", path: "/needs-auth" })
+    ).rejects.toMatchObject({
+      code: "AUTH_REQUIRED",
+      exitCode: 3
+    } satisfies Partial<LanhuError>);
+  });
+
+  it("maps 429 to network exit code after exhausting retries", async () => {
+    const pool = mockAgent.get("https://api.example.com");
+
+    pool.intercept({ method: "GET", path: "/rate-limit" }).reply(429, { message: "rate limited" });
+    pool.intercept({ method: "GET", path: "/rate-limit" }).reply(429, { message: "rate limited" });
+    pool.intercept({ method: "GET", path: "/rate-limit" }).reply(429, { message: "rate limited" });
+
+    const client = new LanhuClient({
+      baseUrl: "https://api.example.com",
+      cookie: "session=secret",
+      timeoutMs: 1_000,
+      profile: "default"
+    });
+
+    await expect(
+      client.request({ method: "GET", path: "/rate-limit" })
+    ).rejects.toMatchObject({
+      code: "HTTP_ERROR",
+      exitCode: 4,
+      httpStatus: 429
+    } satisfies Partial<LanhuError>);
+  });
+
+  it("maps 403 to auth exit code", async () => {
+    const pool = mockAgent.get("https://api.example.com");
+
+    pool.intercept({ method: "GET", path: "/forbidden" }).reply(403, {
+      message: "forbidden"
+    });
+
+    const client = new LanhuClient({
+      baseUrl: "https://api.example.com",
+      cookie: "session=secret",
+      timeoutMs: 1_000,
+      profile: "default"
+    });
+
+    await expect(
+      client.request({ method: "GET", path: "/forbidden" })
+    ).rejects.toMatchObject({
+      code: "HTTP_ERROR",
+      exitCode: 3,
+      httpStatus: 403
+    } satisfies Partial<LanhuError>);
+  });
+
+  it("returns non-JSON response as text", async () => {
+    const pool = mockAgent.get("https://api.example.com");
+
+    pool
+      .intercept({ method: "GET", path: "/text" })
+      .reply(200, "plain text response", {
+        headers: { "content-type": "text/plain" }
+      });
+
+    const client = new LanhuClient({
+      baseUrl: "https://api.example.com",
+      cookie: "session=secret",
+      timeoutMs: 1_000,
+      profile: "default"
+    });
+
+    const response = await client.request({ method: "GET", path: "/text" });
+    expect(response.status).toBe(200);
+    expect(response.data).toBe("plain text response");
+  });
+
+  it("falls back to heuristic JSON parsing without content-type header", async () => {
+    const pool = mockAgent.get("https://api.example.com");
+
+    pool
+      .intercept({ method: "GET", path: "/no-ct" })
+      .reply(200, JSON.stringify({ heuristic: true }));
+
+    const client = new LanhuClient({
+      baseUrl: "https://api.example.com",
+      cookie: "session=secret",
+      timeoutMs: 1_000,
+      profile: "default"
+    });
+
+    const response = await client.request({ method: "GET", path: "/no-ct" });
+    expect(response.data).toEqual({ heuristic: true });
+  });
+
+  it("extracts error message from response body", async () => {
+    const pool = mockAgent.get("https://api.example.com");
+
+    pool.intercept({ method: "GET", path: "/err" }).reply(
+      400,
+      { msg: "bad request details" },
+      { headers: { "content-type": "application/json" } }
+    );
+
+    const client = new LanhuClient({
+      baseUrl: "https://api.example.com",
+      cookie: "session=secret",
+      timeoutMs: 1_000,
+      profile: "default"
+    });
+
+    await expect(
+      client.request({ method: "GET", path: "/err" })
+    ).rejects.toMatchObject({
+      message: "bad request details",
+      httpStatus: 400
+    } satisfies Partial<LanhuError>);
+  });
 });

@@ -88,7 +88,7 @@ export function assertHasProjectId(config: LanhuConfigInput): void {
 }
 
 export function maskSecret(secret?: string): string | undefined {
-  if (!secret) {
+  if (secret === undefined || secret === "") {
     return undefined;
   }
 

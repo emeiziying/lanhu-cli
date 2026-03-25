@@ -3,13 +3,9 @@ import { Command } from "commander";
 import { LanhuClient } from "../../client.js";
 import { loadResolvedConfig } from "../../config/loader.js";
 import { writeJson } from "../../utils/output.js";
+import { type CommonCommandOptions, toOverrides } from "../../utils/parse-options.js";
 
-interface PingCommandOptions {
-  cookie?: string;
-  baseUrl?: string;
-  timeout?: string;
-  profile?: string;
-}
+type PingCommandOptions = CommonCommandOptions;
 
 export function registerPingCommand(program: Command): void {
   program
@@ -20,12 +16,7 @@ export function registerPingCommand(program: Command): void {
     .option("--timeout <ms>", "Override timeout in milliseconds")
     .option("--profile <profile>", "Override profile")
     .action(async (options: PingCommandOptions) => {
-      const config = await loadResolvedConfig({
-        cookie: options.cookie,
-        baseUrl: options.baseUrl,
-        timeoutMs: options.timeout ? Number(options.timeout) : undefined,
-        profile: options.profile
-      });
+      const config = await loadResolvedConfig(toOverrides(options));
       const client = new LanhuClient(config);
       const response = await client.ping();
 

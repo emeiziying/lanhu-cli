@@ -3,15 +3,10 @@ import { stdout } from "node:process";
 
 import { ImageService } from "../../services/image-service.js";
 import { writeJson } from "../../utils/output.js";
+import { type CommonCommandOptions, parsePositiveInt, toOverrides } from "../../utils/parse-options.js";
 import { formatImageList } from "../formatters/image.js";
 
-interface ImageCommandOptions {
-  tenantId?: string;
-  projectId?: string;
-  baseUrl?: string;
-  cookie?: string;
-  timeout?: string;
-  profile?: string;
+interface ImageCommandOptions extends CommonCommandOptions {
   position?: string;
   json?: boolean;
 }
@@ -34,7 +29,7 @@ export function registerImageCommands(program: Command): void {
     .action(async (options: ImageCommandOptions) => {
       const { config, items } = await service.list({
         ...toOverrides(options),
-        position: Number(options.position ?? "1")
+        position: parsePositiveInt(options.position, "position", 1)
       });
 
       if (options.json) {
@@ -81,13 +76,3 @@ export function registerImageCommands(program: Command): void {
     });
 }
 
-function toOverrides(options: ImageCommandOptions) {
-  return {
-    tenantId: options.tenantId,
-    projectId: options.projectId,
-    cookie: options.cookie,
-    baseUrl: options.baseUrl,
-    timeoutMs: options.timeout ? Number(options.timeout) : undefined,
-    profile: options.profile
-  };
-}

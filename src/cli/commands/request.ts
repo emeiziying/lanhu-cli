@@ -9,6 +9,7 @@ import {
   parseQuery
 } from "../../utils/kv.js";
 import { writeJson } from "../../utils/output.js";
+import { parseTimeoutMs } from "../../utils/parse-options.js";
 
 interface RequestCommandOptions {
   query: string[];
@@ -41,7 +42,7 @@ export function registerRequestCommand(program: Command): void {
       const config = await loadResolvedConfig({
         cookie: options.cookie,
         baseUrl: options.baseUrl,
-        timeoutMs: options.timeout ? Number(options.timeout) : undefined,
+        timeoutMs: parseTimeoutMs(options.timeout),
         profile: options.profile,
         tenantId: options.tenantId,
         projectId: options.projectId

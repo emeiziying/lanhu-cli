@@ -3,17 +3,17 @@ import { stdout } from "node:process";
 
 import { ProjectService } from "../../services/project-service.js";
 import { writeJson } from "../../utils/output.js";
+import {
+  type CommonCommandOptions,
+  parseNonNegativeInt,
+  parsePositiveInt,
+  toOverrides
+} from "../../utils/parse-options.js";
 import { formatProjectList } from "../formatters/project.js";
 import { promptProjectSelection } from "../interactive.js";
 
-interface ProjectCommandOptions {
-  tenantId?: string;
+interface ProjectCommandOptions extends CommonCommandOptions {
   parentId?: string;
-  projectId?: string;
-  baseUrl?: string;
-  cookie?: string;
-  timeout?: string;
-  profile?: string;
   imgLimit?: string;
   detach?: string;
   json?: boolean;
@@ -37,7 +37,7 @@ export function registerProjectCommands(program: Command): void {
       const { config, items } = await service.list({
         ...toOverrides(options),
         tenantId: options.tenantId,
-        parentId: Number(options.parentId ?? "0")
+        parentId: parseNonNegativeInt(options.parentId, "parent-id", 0)
       });
 
       if (options.json) {
@@ -67,7 +67,7 @@ export function registerProjectCommands(program: Command): void {
       const listResult = await service.list({
         ...toOverrides(options),
         tenantId: options.tenantId,
-        parentId: Number(options.parentId ?? "0")
+        parentId: parseNonNegativeInt(options.parentId, "parent-id", 0)
       });
 
       const selection =
@@ -75,7 +75,7 @@ export function registerProjectCommands(program: Command): void {
       const { selected } = await service.switch(selection, {
         ...toOverrides(options),
         tenantId: options.tenantId,
-        parentId: Number(options.parentId ?? "0")
+        parentId: parseNonNegativeInt(options.parentId, "parent-id", 0)
       });
 
       stdout.write(`Switched to ${selected.name}\n`);
@@ -97,21 +97,11 @@ export function registerProjectCommands(program: Command): void {
         ...toOverrides(options),
         tenantId: options.tenantId,
         projectId: options.projectId,
-        imgLimit: Number(options.imgLimit ?? "1"),
-        detach: Number(options.detach ?? "1")
+        imgLimit: parsePositiveInt(options.imgLimit, "img-limit", 1),
+        detach: parsePositiveInt(options.detach, "detach", 1)
       });
 
       writeJson(detail);
     });
 }
 
-function toOverrides(options: ProjectCommandOptions) {
-  return {
-    tenantId: options.tenantId,
-    projectId: options.projectId,
-    cookie: options.cookie,
-    baseUrl: options.baseUrl,
-    timeoutMs: options.timeout ? Number(options.timeout) : undefined,
-    profile: options.profile
-  };
-}

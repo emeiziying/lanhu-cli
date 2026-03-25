@@ -7,6 +7,7 @@ import {
   showAuthConfig
 } from "../../auth.js";
 import { writeJson } from "../../utils/output.js";
+import { parseTimeoutMs } from "../../utils/parse-options.js";
 
 interface AuthSetCommandOptions {
   cookie: string;
@@ -29,7 +30,7 @@ export function registerAuthCommands(program: Command): void {
       const config = await setAuthConfig({
         cookie: options.cookie,
         baseUrl: options.baseUrl,
-        timeoutMs: options.timeout ? Number(options.timeout) : undefined,
+        timeoutMs: parseTimeoutMs(options.timeout),
         profile: options.profile
       });
 
