@@ -3,7 +3,7 @@ import { stdout } from "node:process";
 
 import { ImageService } from "../../services/image-service.js";
 import { writeJson } from "../../utils/output.js";
-import { type CommonCommandOptions, toOverrides } from "../../utils/parse-options.js";
+import { type CommonCommandOptions, parsePositiveInt, toOverrides } from "../../utils/parse-options.js";
 import { formatImageList } from "../formatters/image.js";
 
 interface ImageCommandOptions extends CommonCommandOptions {
@@ -29,7 +29,7 @@ export function registerImageCommands(program: Command): void {
     .action(async (options: ImageCommandOptions) => {
       const { config, items } = await service.list({
         ...toOverrides(options),
-        position: Number(options.position ?? "1")
+        position: parsePositiveInt(options.position, "position", 1)
       });
 
       if (options.json) {
